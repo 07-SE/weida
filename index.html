@@ -452,7 +452,7 @@
       <div class="row"><span>进度</span><b id="hud-progress" class="warn">已验证可玩</b></div>
       <div class="row"><span>模板</span><b id="hud-tpl">空白</b></div>
       <div class="row"><span>状态</span><b id="hud-state" class="on">P1 地面</b></div>
-      <div class="row"><span>HP P1/P2</span><b id="hud-hp" class="hp-high">100 / 100</b></div>
+      <div class="row"><span>生命</span><b id="hud-hp" class="hp-high">♥♥♥♥ / ♥♥♥♥</b></div>
       <div class="row"><span>跳跃峰值</span><b id="hud-apex">90 px</b></div>
       <div class="row"><span>速度</span><b id="hud-vel">0, 0</b></div>
     </div>
@@ -608,9 +608,9 @@
   var REACH_UP_CELLS = Math.max(1, Math.floor(JUMP_HEIGHT / CELL));
 
   /* 机关参数 */
-  var SPIKE_DAMAGE = 25;
+  var SPIKE_DAMAGE = 1;             // 四点血：碰刺扣 1 点
   var INVINCIBLE_TIME = 0.5;
-  var HP_MAX = 100;
+  var HP_MAX = 4;               // 四点血：每位玩家 4 点
   var SPIKE_W = 40;
   var SPIKE_H = 24;
 
@@ -623,7 +623,7 @@
 
   /* 双人互动 / 连坐 */
   var STOMP_BOUNCE = 600;          // 踩头借力（≈90px 小跳）
-  var SPRING_HIT_DAMAGE = 15;      // 弹簧撞击伤害
+  var SPRING_HIT_DAMAGE = 1;       // 弹簧撞击：扣 1 点
   var COMBO_DELAY = 0.5;           // 连坐延迟
   var COMBO_WARN = 0.6;            // 红圈预警时长
   var COMBO_RATIO = 0.5;           // 连坐只吃一半伤害
@@ -5275,11 +5275,17 @@
       : p1.onGround ? (p1.riding ? 'P1 平台' : 'P1 地面') : 'P1 空中';
     elState.classList.toggle('on', !editorMode && !winner && p1.onGround);
 
-    var shown = Math.round(p1.hp);
-    elHp.textContent = gameMode === 'duo' ? shown + ' / ' + Math.round(p2.hp) : String(shown);
-    elHp.classList.toggle('hp-high', shown > 50 && p2.hp > 50);
-    elHp.classList.toggle('hp-mid', (shown > 25 && shown <= 50) || (p2.hp > 25 && p2.hp <= 50));
-    elHp.classList.toggle('hp-low', shown <= 25 || p2.hp <= 25);
+    function hearts(n) {
+      var out = '';
+      for (var h = 0; h < HP_MAX; h++) out += (h < Math.round(n)) ? '♥' : '♡';
+      return out;
+    }
+    elHp.textContent = gameMode === 'duo'
+      ? hearts(p1.hp) + ' / ' + hearts(p2.hp)
+      : hearts(p1.hp);
+    elHp.classList.toggle('hp-high', p1.hp >= 3 && p2.hp >= 3);
+    elHp.classList.toggle('hp-mid', p1.hp === 2 || p2.hp === 2);
+    elHp.classList.toggle('hp-low', p1.hp <= 1 || p2.hp <= 1);
 
     elApex.textContent = p1.lastApex > 0 ? Math.round(p1.lastApex) + ' px' : '--';
     elVel.textContent = Math.round(p1.vx) + ', ' + Math.round(p1.vy);
@@ -5296,7 +5302,7 @@
     elKeys.textContent = heldText();
     elNote.textContent = editorMode
       ? '1-8 选类型 · Z 切方位 · F 弹射 · 左键放置 · 右键删除'
-      : 'P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%';
+      : 'P1 A/D/W · P2 ←/→/↑ · 碰刺 −1 点血 · 4 点血空即失败';
   }
 
   /* ---------- 主循环 ---------- */
