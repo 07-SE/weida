@@ -585,16 +585,6 @@
 
 <div class="tut-hint" id="tut-hint" hidden>起点终点已就绪 · 按 E 试玩通关</div>
 
-<div class="modal-mask" id="gate-done" hidden>
-  <div class="modal">
-    <p class="modal-title">开工三步已完成！</p>
-    <p class="modal-text">起点 ✓ 终点 ✓ 通关 ✓ —— 完整编辑器已为你解锁</p>
-    <div class="seg">
-      <button type="button" id="gate-done-ok">进入完整编辑</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal-mask" id="share-modal" hidden>
   <div class="modal">
     <p class="modal-title">还不能分享</p>
@@ -2876,19 +2866,6 @@
     }
   }
 
-  var elGateDone = document.getElementById('gate-done');
-  var elGateDoneOk = document.getElementById('gate-done-ok');
-  if (elGateDoneOk && typeof elGateDoneOk.addEventListener === 'function') {
-    elGateDoneOk.addEventListener('click', function () {
-      editorUnlocked = true;
-      if (elStartCard) elStartCard.hidden = true;
-      if (elGateDone) elGateDone.hidden = true;
-      syncSegButtons();
-      updateHud();
-      flash('完整编辑器已解锁');
-    });
-  }
-
   if (elStartCardOk && typeof elStartCardOk.addEventListener === 'function') {
     elStartCardOk.addEventListener('click', function () {
       if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
@@ -4392,10 +4369,6 @@
         }
         winner = p;
         p.wins++;
-        if (!editorUnlocked && !isEditLocked() && !shareMode) {
-          var gd = document.getElementById('gate-done');
-          if (gd) gd.hidden = false;        // 弹「开工三步已完成」
-        }
         flash(gameMode === 'solo' ? '通关成功！按 R 重开' : (p.name + ' 获胜！按 R 重开'));
         updateHud();
         return;
@@ -4611,7 +4584,7 @@
 
   function drawMarkers() {
     if (tutorialActive()) {
-      var glow = 0.25 + 0.35 * (1 + Math.sin(tutorialPulse * 5));
+      var glow = 0.35 + 0.45 * (1 + Math.sin(tutorialPulse * 5));
       if (startCell) {
         var psx = startCell.col * CELL;
         var psBase = markerBaseY(startCell);
@@ -4619,8 +4592,14 @@
         ctx.globalAlpha = glow;
         ctx.fillStyle = '#ffd166';
         ctx.beginPath();
-        ctx.arc(psx + 32, psBase - 16, 30, 0, Math.PI * 2);
+        ctx.arc(psx + 32, psBase - 16, 34, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#ffe08a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(psx + 32, psBase - 16, 34 + 2 * Math.sin(tutorialPulse * 5), 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
       if (goalCell) {
@@ -4630,8 +4609,14 @@
         ctx.globalAlpha = glow;
         ctx.fillStyle = '#ffd166';
         ctx.beginPath();
-        ctx.arc(pgx + 35, pgBase - 24, 30, 0, Math.PI * 2);
+        ctx.arc(pgx + 35, pgBase - 24, 34, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#ffe08a';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(pgx + 35, pgBase - 24, 34 + 2 * Math.sin(tutorialPulse * 5), 0, Math.PI * 2);
+        ctx.stroke();
         ctx.restore();
       }
     }
@@ -4873,6 +4858,19 @@
       ctx.stroke();
 
       drawToolIcon(TOOLS[i], r, active);
+
+      var needStart = tutorialActive() && i === 7 && !cardTicks.start;
+      var needGoal = tutorialActive() && i === 8 && !cardTicks.goal;
+      if (needStart || needGoal) {
+        var ga = 0.3 + 0.4 * (1 + Math.sin(tutorialPulse * 5));
+        ctx.save();
+        ctx.globalAlpha = ga;
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
+        roundRect(r.x - 1.5, r.y - 1.5, r.w + 3, r.h + 3, 8);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
       ctx.font = '600 11px system-ui,sans-serif';
