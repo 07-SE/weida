@@ -1,0 +1,5537 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>WEIDA DEMO · Step 2-4 物理与编辑器</title>
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --bg:#0b0f15;
+    --ink:#dbe6f3;
+    --muted:#8ea2ba;
+    --line:rgba(120,160,210,.16);
+    --accent:#4c8dff;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    overflow:hidden;
+    color:var(--ink);
+    background:radial-gradient(1200px 700px at 50% -10%, #16202c 0%, #0b0f15 62%, #070a0e 100%);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+
+  #app{
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    padding:24px;
+  }
+
+  #stage{
+    position:relative;
+    flex:0 0 auto;
+    width:640px;
+    height:640px;
+    background:#0d1218;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 0 0 1px rgba(120,170,230,.22), 0 24px 60px -18px rgba(0,0,0,.85);
+  }
+  #game{ display:block; width:100%; height:100%; }
+
+  #badge{
+    position:absolute;
+    top:10px; right:10px;
+    padding:4px 9px;
+    border-radius:999px;
+    font-size:11px;
+    letter-spacing:.02em;
+    font-variant-numeric:tabular-nums;
+    color:#cfe0f5;
+    background:rgba(10,16,24,.72);
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.22);
+    pointer-events:none;
+  }
+
+  .hud{
+    flex:0 0 auto;
+    width:208px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    padding:14px;
+    border-radius:12px;
+    background:rgba(17,24,34,.72);
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.16);
+    max-height:calc(100vh - 32px);
+    overflow-y:auto;
+    scrollbar-width:thin;
+  }
+  .brand{ display:flex; align-items:center; gap:7px; }
+  .brand .dot{
+    width:7px; height:7px; border-radius:50%;
+    background:#57d38c;
+    box-shadow:0 0 8px rgba(87,211,140,.7);
+  }
+  .brand h1{
+    margin:0;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:.14em;
+    color:#eaf2ff;
+  }
+  .hud .sub{
+    margin:-6px 0 0;
+    font-size:11px;
+    line-height:1.4;
+    color:var(--muted);
+  }
+
+  .stats{ display:flex; flex-direction:column; gap:6px; }
+  .row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:8px;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .row b{
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+    color:#e6effc;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  .row b.warn{ color:#ffb454; }
+  .row b.on{ color:#7fd1a6; }
+  .row b.edit{ color:#8fb8ff; }
+  .row b.hp-high{ color:#7fd1a6; }
+  .row b.hp-mid{ color:#ffc25c; }
+  .row b.hp-low{ color:#ff6b6b; }
+
+  .divider{ height:1px; background:var(--line); }
+
+  .legend{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:11px;
+    color:var(--muted);
+  }
+  kbd{
+    display:inline-block;
+    min-width:16px;
+    padding:1px 4px;
+    margin:0 1px;
+    border-radius:4px;
+    font:600 10px/1.5 ui-monospace,Consolas,monospace;
+    text-align:center;
+    color:#cfe0f5;
+    background:rgba(255,255,255,.06);
+    box-shadow:inset 0 0 0 1px rgba(160,190,230,.18);
+  }
+
+  .note{
+    margin:0;
+    font-size:10.5px;
+    line-height:1.5;
+    color:#6f86a1;
+  }
+  .seg-block{ display:flex; flex-direction:column; gap:5px; margin:2px 0 8px; }
+  .seg-title{ font-size:10px; letter-spacing:.06em; color:#7c93ad; }
+  .seg{ display:flex; gap:6px; }
+  [hidden]{ display:none !important; }
+  .seg button{
+    flex:1; padding:6px 6px; border-radius:7px; cursor:pointer;
+    border:1px solid rgba(140,170,210,.22);
+    background:rgba(255,255,255,.04);
+    color:#b9c7d9; font:inherit; font-size:11px;
+  }
+  .seg button:hover{ border-color:rgba(120,180,240,.5); }
+  .seg button.on{
+    border-color:rgba(120,200,255,.9);
+    background:rgba(76,141,255,.24);
+    color:#eaf2ff;
+  }
+  .seg-hint{ margin:0; font-size:10px; line-height:1.4; color:#6f86a1; }
+  .confirm{
+    margin-top:6px; padding:8px; border-radius:7px;
+    background:rgba(255,180,90,.10);
+    box-shadow:inset 0 0 0 1px rgba(255,180,90,.35);
+  }
+  .confirm p{ margin:0 0 6px; font-size:10.5px; line-height:1.45; color:#ffcf9a; }
+  .confirm .seg button{ font-size:10.5px; padding:5px 6px; }
+  #size-block .seg-title{ color:#9cc2ff; }
+  #size-block{ padding-bottom:2px; }
+  .chk{
+    display:flex; align-items:center; gap:7px;
+    font-size:11px; color:#b9c7d9; cursor:pointer; user-select:none;
+    margin:-2px 0 6px;
+  }
+  .chk input{ width:14px; height:14px; accent-color:#4c8dff; cursor:pointer; }
+  .reach-note{
+    margin:-2px 0 8px;
+    padding:6px 8px;
+    border-radius:6px;
+    background:rgba(255,255,255,.03);
+    box-shadow:inset 0 0 0 1px rgba(140,170,210,.14);
+    font-size:10.5px;
+    line-height:1.55;
+    color:#9fb6cf;
+    word-break:break-word;
+  }
+  .reach-note.ok{ color:#7fd1a6; }
+  .reach-note.warn{ color:#ffb26b; }
+  .reach-warn{
+    position:absolute; left:50%; top:10px; transform:translateX(-50%);
+    padding:8px 14px; border-radius:8px;
+    background:rgba(60,16,16,.92);
+    box-shadow:inset 0 0 0 1px rgba(255,110,110,.7);
+    color:#ffb3b3; font-size:12px; white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity .2s ease; z-index:3;
+  }
+  .reach-warn.on{ opacity:1; }
+  .toast{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    padding:12px 18px; border-radius:10px;
+    background:rgba(9,14,21,.92);
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.45);
+    color:#cfe0f5; font-size:13px; line-height:1.5;
+    white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity .2s ease;
+  }
+  .toast.on{ opacity:1; }
+  /* 半官图提示挪到画布上方，避免与 E 键提示叠在正中 */
+  #semi-toast{ top:56px; transform:translateX(-50%); }
+  /* ---------- 分享 / 弹窗 ---------- */
+  .modal-mask{
+    position:fixed; inset:0; z-index:50;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(4,8,13,.72);
+    backdrop-filter:blur(2px);
+  }
+  .modal{
+    width:340px; max-width:88vw;
+    padding:18px 18px 16px; border-radius:12px;
+    background:#111a24;
+    box-shadow:0 0 0 1px rgba(120,170,230,.35), 0 24px 60px -20px rgba(0,0,0,.9);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .modal-title{ margin:0; font-size:14px; font-weight:700; color:#eaf2ff; }
+  .modal-text{ margin:0; font-size:12px; line-height:1.6; color:#a9bccf; }
+  .guide{ width:400px; }
+  .guide-grid{ display:flex; gap:12px; }
+  .guide-col{ flex:1; padding:8px; border-radius:8px; background:rgba(255,255,255,.04);
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.18); display:flex; flex-direction:column; gap:4px; }
+  .guide-tag{ font-size:10px; font-weight:700; letter-spacing:.06em; }
+  .guide-tag.p1{ color:#7db3ff; }
+  .guide-tag.p2{ color:#ffb176; }
+  .guide-key{ margin:0; font-size:15px; font-weight:700; color:#eaf2ff; letter-spacing:.08em; }
+  .guide-desc{ margin:0; font-size:10.5px; line-height:1.5; color:#9fb3c8; }
+  .modal-text.tip{ color:#8fd3b6; }
+  .rules-text{ margin:0; font-size:12.5px; line-height:1.75; color:#cfe0f5; }
+  .rules-text b{ color:#7db3ff; }
+  .rules-btn{
+    position:absolute; right:10px; top:10px; z-index:6;
+    width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(10,16,24,.72); color:#9fc4ec; font-size:13px; font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.35);
+  }
+  .key-hint{
+    position:absolute; left:10px; bottom:10px; z-index:6;
+    padding:5px 9px; border-radius:8px;
+    background:rgba(9,14,21,.55);
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.18);
+    color:#9fb3c8; font-size:10.5px; line-height:1.5; letter-spacing:.02em;
+    pointer-events:none; white-space:nowrap;
+  }
+  .starter-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .starter{
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+    padding:12px 12px 10px; border:0; border-radius:10px; cursor:pointer;
+    background:rgba(255,255,255,.05); color:#eaf2ff; font-size:13px; font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.22);
+    text-align:left;
+  }
+  .starter:hover{ background:rgba(76,141,255,.18); box-shadow:inset 0 0 0 1px rgba(130,185,255,.6); }
+  .starter em{ font-style:normal; font-size:10.5px; color:#8fa3b8; font-weight:400; }
+  #start-card-ok{
+    width:100%; padding:8px 10px; border:0; border-radius:8px; cursor:not-allowed;
+    background:rgba(255,255,255,.07); color:#6f8296; font-size:12px; font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.18);
+    transition:background .15s ease, color .15s ease;
+  }
+  #start-card-ok.ready{
+    cursor:pointer; background:#ffd166; color:#221704;
+    box-shadow:inset 0 0 0 1px rgba(255,209,102,.9), 0 6px 16px -8px rgba(255,209,102,.8);
+  }
+  .tool-locked{ opacity:.35; }
+  .step-strip{ display:flex; align-items:center; gap:6px; margin:6px 0 0; font-size:10.5px; color:#7c8ea1; }
+  .step-strip .dot{
+    display:inline-flex; width:15px; height:15px; border-radius:50%;
+    align-items:center; justify-content:center; font-size:9px; font-weight:700;
+    background:rgba(255,255,255,.07); color:#7c8ea1;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.25);
+  }
+  .step-strip .dot.done{ background:rgba(87,211,140,.18); color:#57d38c; box-shadow:inset 0 0 0 1px rgba(87,211,140,.5); }
+  .steps{ list-style:none; margin:0 0 6px; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .steps li{ font-size:11.5px; color:#b7c8da; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px; }
+  .steps li i{ font-style:normal; color:#5d7893; font-size:12px; }
+  .steps li em{ font-style:normal; display:block; width:100%; padding-left:16px; font-size:10px; color:#7c8ea1; }
+  .steps li.done{ color:#57d38c; }
+  .steps li.done i{ color:#57d38c; }
+  .steps .hl{ color:#dbe8f7; font-weight:600; }
+  .steps .kbd{ padding:0 4px; border-radius:4px; background:rgba(255,255,255,.1); font-size:10px; }
+  .steps-done{ margin:0 0 6px; font-size:11.5px; color:#57d38c; }
+  #start-card-open{ color:#7db3ff; text-decoration:none; }
+  .share-input{
+    width:100%; box-sizing:border-box;
+    padding:8px 10px; border-radius:8px; border:0;
+    background:rgba(255,255,255,.06); color:#cfe0f5;
+    font-size:11px; font-family:ui-monospace,Consolas,monospace;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.28);
+  }
+  .flash{
+    margin:0;
+    min-height:14px;
+    font-size:10.5px;
+    color:#57d38c;
+    opacity:0;
+    transition:opacity .18s ease;
+  }
+  .flash.on{ opacity:1; }
+</style>
+</head>
+<body>
+<div id="app" style="padding: 24px;">
+  <div id="stage" style="width: 605px; height: 605px;">
+    <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
+    <div id="badge">10×10 · 0.95×</div>
+    <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
+    <div class="key-hint" id="key-hint"></div>
+    <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
+    <div class="toast" id="edit-toast" hidden="">按 E 键 切换编辑 / 游玩模式</div>
+    <div class="reach-warn" id="reach-warn" hidden="">算法判定暂不可达，可进入游玩实测通关认证</div>
+  </div>
+
+  <aside class="hud" id="hud" style="display: flex;">
+    <div class="brand"><span class="dot"></span><h1>WEIDA DEMO</h1></div>
+    <p class="sub">Step 6 · 双人 / 踩头 / 连坐 / 结算 · 引导 v1</p>
+
+    <div class="seg-block start-card" id="start-card" hidden>
+      <span class="seg-title">开工三步（完成才能进入完整编辑）</span>
+      <ul class="steps">
+        <li id="step-start"><i>□</i> 放一个<span class="hl">起点</span><em>点「起点」工具，在画布上点一下</em></li>
+        <li id="step-goal"><i>□</i> 放一个<span class="hl">终点</span><em>点「终点」工具，再点一下</em></li>
+        <li id="step-win"><i>□</i> 按 <span class="kbd">E</span> 试玩通关<em>走到旗子，回来就能分享</em></li>
+      </ul>
+      <p class="steps-done" id="steps-done" hidden>✓ 三步完成，可以进入完整编辑了</p>
+      <div class="seg">
+        <button type="button" id="start-card-ok" disabled>进入完整编辑</button>
+      </div>
+    </div>
+
+    <div class="seg-block" id="size-block">
+      <span class="seg-title">画布尺寸</span>
+      <div class="seg" id="size-seg">
+        <button type="button" data-size="6">6×6</button>
+        <button type="button" data-size="10" class="on">10×10</button>
+      </div>
+      <p class="seg-hint" id="size-hint">10×10 电脑端专属，不可分享至手机</p>
+      <div class="confirm" id="size-confirm" hidden="">
+        <p>切换尺寸将清空当前地图，是否确认？</p>
+        <div class="seg">
+          <button type="button" id="size-confirm-yes">确认切换</button>
+          <button type="button" id="size-confirm-no">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="seg-block">
+      <span class="seg-title">模式</span>
+      <div class="seg" id="mode-seg">
+        <button type="button" data-mode="solo" class="">单人</button>
+        <button type="button" data-mode="duo" class="on">双人</button>
+      </div>
+    </div>
+
+    <div class="seg-block" id="mapmode-block">
+      <span class="seg-title">地图模式</span>
+      <div class="seg" id="mapmode-seg">
+        <button type="button" data-mapmode="blank" class="on">空白</button>
+        <button type="button" data-mapmode="semi" class="">半官图</button>
+        <button type="button" data-mapmode="official">官图</button>
+      </div>
+    </div>
+
+    <div class="seg-block" id="edit-tools" hidden="">
+      <span class="seg-title">编辑工具</span>
+      <div class="seg">
+        <button type="button" id="btn-undo">撤回</button>
+        <button type="button" id="btn-redo">恢复</button>
+        <button type="button" id="btn-clear">清空画布</button>
+      </div>
+      <p class="seg-hint">Ctrl+Z 撤回 · Ctrl+Y 恢复 · <a href="#" id="start-card-open">开工三步</a></p>
+      <p class="step-strip" id="step-strip">
+        <b id="dot-start" class="dot">1</b> 起点
+        <b id="dot-goal" class="dot">2</b> 终点
+        <b id="dot-win" class="dot">3</b> 通关
+      </p>
+      <div class="seg">
+        <button type="button" id="btn-share">生成分享链接</button>
+      </div>
+      <p class="seg-hint" id="share-state">未通关：分享前请亲自通关一次</p>
+      <div class="confirm" id="clear-confirm" hidden="">
+        <p>清空会删除你放置的所有元素（模板基底保留），确认？</p>
+        <div class="seg">
+          <button type="button" id="clear-yes">确认清空</button>
+          <button type="button" id="clear-no">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="seg-block" id="share-panel" hidden="">
+      <span class="seg-title">分享关卡</span>
+      <p class="seg-hint" id="share-info">—</p>
+      <div class="seg">
+        <button type="button" id="btn-remix">复刻到我的编辑器</button>
+      </div>
+      <p class="seg-hint">复刻后为你的独立副本，修改不会影响原链接</p>
+    </div>
+
+<label class="chk" id="reach-chk-wrap" hidden>
+      <input type="checkbox" id="chk-reach" checked="">
+      <span>显示可达路径</span>
+    </label>
+
+    <p class="seg-hint" id="semi-hint" hidden="">半官图需自行放置起点与终点，方可进入游玩</p>
+    <p class="seg-hint" id="blank-hint" hidden="">先放置起点与终点，即可开始创作与试玩</p>
+
+    <div class="stats" id="hud-info">
+      <div class="row"><span>模式</span><b id="hud-mode" class="">双人</b></div>
+      <div class="row"><span>机关</span><b id="hud-budget">11/15</b></div>
+      <div class="row"><span>进度</span><b id="hud-progress" class="warn">已验证可玩</b></div>
+      <div class="row"><span>模板</span><b id="hud-tpl">空白</b></div>
+      <div class="row"><span>状态</span><b id="hud-state" class="on">P1 地面</b></div>
+      <div class="row"><span>HP P1/P2</span><b id="hud-hp" class="hp-high">100 / 100</b></div>
+      <div class="row"><span>跳跃峰值</span><b id="hud-apex">90 px</b></div>
+      <div class="row"><span>速度</span><b id="hud-vel">0, 0</b></div>
+    </div>
+
+    <p class="reach-note" id="hud-reach">无连通起点到终点的可行路径</p>
+
+    <div class="divider"></div>
+
+    <div class="stats" id="hud-debug">
+      <div class="row"><span>帧率 FPS</span><b id="hud-fps" class="">60</b></div>
+      <div class="row"><span>逻辑步进</span><b id="hud-sps">60/s</b></div>
+      <div class="row"><span>画布缩放</span><b id="hud-scale">0.95×</b></div>
+      <div class="row"><span>坐标</span><b id="hud-pos">16,528 · 0,8</b></div>
+      <div class="row"><span>按住</span><b id="hud-keys">—</b></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="legend" id="hud-legend">
+      <div class="row"><span>P1 移动</span><b><kbd>A</kbd><kbd>D</kbd></b></div>
+      <div class="row"><span>P1 跳跃</span><b><kbd>W</kbd><kbd>空格</kbd></b></div>
+      <div class="row"><span>P2 移动</span><b><kbd>←</kbd><kbd>→</kbd></b></div>
+      <div class="row"><span>P2 跳跃</span><b><kbd>↑</kbd></b></div>
+      <div class="row"><span>编辑</span><b><kbd>E</kbd></b></div>
+      <div class="row"><span>模板</span><b><kbd>T</kbd><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></b></div>
+      <div class="row"><span>调试盒</span><b><kbd>B</kbd></b></div>
+      <div class="row"><span>复位</span><b><kbd>Q</kbd><kbd>0</kbd><kbd>R</kbd></b></div>
+    </div>
+
+    <p class="note" id="hud-note">P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%</p>
+    <p class="flash" id="hud-flash">已复位双方</p>
+  </aside>
+</div>
+
+<div class="modal-mask" id="starter-modal" hidden>
+  <div class="modal guide">
+    <p class="modal-title">想做什么样的图？</p>
+    <p class="modal-text">选一个底子，改两笔就能发给朋友</p>
+    <div class="starter-grid">
+      <button type="button" class="starter" data-kind="grass">草地<em>一条地面，走到底</em></button>
+      <button type="button" class="starter" data-kind="steps">阶梯<em>三段台阶，跳上去</em></button>
+      <button type="button" class="starter" data-kind="trap">带机关<em>弹簧 + 尖刺</em></button>
+      <button type="button" class="starter" data-kind="blank">纯空白<em>从零开始搭</em></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="share-rules" hidden>
+  <div class="modal">
+    <p class="modal-title">怎么玩</p>
+    <p class="rules-text" id="rules-text">—</p>
+    <div class="seg">
+      <button type="button" id="rules-start">开始游玩</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="guide-modal" hidden>
+  <div class="modal guide">
+    <p class="modal-title">双人协作 · 操作说明</p>
+    <div class="guide-grid">
+      <div class="guide-col">
+        <span class="guide-tag p1">1P</span>
+        <p class="guide-key">W A S D</p>
+        <p class="guide-desc">A / D 左右移动 · W 或 空格 跳</p>
+      </div>
+      <div class="guide-col">
+        <span class="guide-tag p2">2P</span>
+        <p class="guide-key">← → ↑</p>
+        <p class="guide-desc">← / → 左右移动 · ↑ 跳</p>
+      </div>
+    </div>
+    <p class="modal-text">目标：两人配合到达终点。踩尖刺扣血，血量归零或掉出地图即挑战失败。</p>
+    <p class="modal-text tip">小技巧：脚刚离开平台边缘的那一下（约 0.1 秒）仍然能起跳，踩空别慌，马上按跳。</p>
+    <div class="seg">
+      <button type="button" id="guide-start">开始游戏</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="share-modal" hidden>
+  <div class="modal">
+    <p class="modal-title">还不能分享</p>
+    <p class="modal-text">请先亲自通关本地图后再分享，确保关卡可正常通过</p>
+    <div class="seg">
+      <button type="button" id="modal-test">去测试通关</button>
+      <button type="button" id="modal-cancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="mobile-block" hidden>
+  <div class="modal">
+    <p class="modal-title">请用电脑打开</p>
+    <p class="modal-text">本地图为 10×10 电脑端专属关卡，暂不支持移动端打开，请使用电脑访问</p>
+  </div>
+</div>
+
+<div class="modal-mask" id="share-result" hidden>
+  <div class="modal">
+    <p class="modal-title">分享链接已生成</p>
+    <p class="modal-text">复制下面的链接发给朋友（6×6 尺寸才可在手机打开）</p>
+    <input id="share-url" class="share-input" readonly />
+    <div class="seg">
+      <button type="button" id="share-copy">复制链接</button>
+      <button type="button" id="share-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 常量（DEMO_SPEC） ---------- */
+  var CELL = 64;
+  var COLS = 10;
+  var ROWS = 10;
+  var MAP = CELL * COLS;
+  var STEP = 1 / 60;
+  var MAX_STEPS_PER_FRAME = 8;
+
+  var MOVE_SPEED = 200;
+  var GRAVITY = 2000;
+  var JUMP_HEIGHT = 90;
+  var JUMP_V = Math.sqrt(2 * GRAVITY * JUMP_HEIGHT);      // 600
+
+  var BODY_W = 32;
+  var BODY_H = 48;
+  var HURT_W = 28;
+  var HURT_H = 44;
+  var PUSH_W = 36;
+  var PUSH_H = 44;
+  var EPS = 0.0001;
+
+  /* 台阶：只有脚部真正到达台阶顶面高度才允许登上；容错仅用于消除贴边 1px 的卡顿 */
+  var STEP_UP = CELL;              // 爬升上限 1 格
+  var STEP_TOL = 1;                // 贴边容错（≈0，杜绝磁吸/提前拉台）
+  var STEP_SMOOTH = 900;
+
+  /* 第 5 步 BFS：竖直最多上 1 格，跟随 JUMP_HEIGHT */
+  var REACH_UP_CELLS = Math.max(1, Math.floor(JUMP_HEIGHT / CELL));
+
+  /* 机关参数 */
+  var SPIKE_DAMAGE = 25;
+  var INVINCIBLE_TIME = 0.5;
+  var HP_MAX = 100;
+  var SPIKE_W = 40;
+  var SPIKE_H = 24;
+
+  var SPRING_DECEL = 2000;         // 弹射减速度（1 格 / 2 格共用）
+  var SPRING_COOLDOWN = 0.3;
+
+  /* 跳跃手感容错：不做任何物理参数改动，只放宽输入窗口 */
+  var JUMP_BUFFER_TIME = 0.1;      // 跳跃缓冲：落地前 100ms 内按跳，落地立即起跳
+  var COYOTE_TIME = 0.1;           // 土狼时间：离开地面后 100ms 内仍可起跳
+
+  /* 双人互动 / 连坐 */
+  var STOMP_BOUNCE = 600;          // 踩头借力（≈90px 小跳）
+  var SPRING_HIT_DAMAGE = 15;      // 弹簧撞击伤害
+  var COMBO_DELAY = 0.5;           // 连坐延迟
+  var COMBO_WARN = 0.6;            // 红圈预警时长
+  var COMBO_RATIO = 0.5;           // 连坐只吃一半伤害
+
+  var SIDE_W = 16;                 // 侧面挂载的机关厚度
+  var SIDE_H = 40;                 // 侧面挂载的机关长度
+
+  var MOVE_H = 16;                 // 移动平台厚度
+
+  /* 编辑器方块：三种尺寸，都不超出单格 64px */
+  var BLOCKS = {
+    full: { w: 64, h: 64, label: '64×64 满格' },
+    flat: { w: 64, h: 32, label: '64×32 矮扁' },
+    bar: { w: 32, h: 64, label: '32×64 窄条' }
+  };
+  var TOOLS = [
+    { kind: 'block', size: 'full', label: '满格' },
+    { kind: 'block', size: 'flat', label: '矮扁' },
+    { kind: 'block', size: 'bar', label: '窄条' },
+    { kind: 'trap', type: 'spike', label: '尖刺' },
+    { kind: 'trap', type: 'spring', label: '弹簧' },
+    { kind: 'trap', type: 'spring', axis: 'up', label: '上弹' },
+    { kind: 'trap', type: 'mover', label: '平台' },
+    { kind: 'marker', marker: 'start', label: '起点' },
+    { kind: 'marker', marker: 'goal', label: '终点' }
+  ];
+
+  /* ---------- 编辑历史：撤回 / 恢复 / 一键清空 ---------- */
+  var undoStack = [];
+  var redoStack = [];
+  var HISTORY_MAX = 80;
+
+  function editSnapshot() {
+    return {
+      rows: grid.map(function (r) { return r.map(function (v) { return v ? '#' : '.'; }).join(''); }),
+      traps: traps.map(function (t) { var o = {}; for (var k in t) o[k] = t[k]; return o; }),
+      blocks: blocks.map(function (b) { return { col: b.col, row: b.row, size: b.size }; }),
+      start: startCell ? { col: startCell.col, row: startCell.row } : null,
+      goal: goalCell ? { col: goalCell.col, row: goalCell.row } : null
+    };
+  }
+
+  function applySnapshot(sn) {
+    if (sn.rows) grid = parseRows(sn.rows);
+    traps = sn.traps.map(function (t) { var o = {}; for (var k in t) o[k] = t[k]; o.cool = 0; return o; });
+    blocks = sn.blocks.map(function (b) { return { col: b.col, row: b.row, size: b.size }; });
+    for (var i = 0; i < traps.length; i++) layoutTrap(traps[i]);
+    buildPlatforms();
+    rebuildSolids();
+    startCell = sn.start ? { col: sn.start.col, row: sn.start.row } : null;
+    goalCell = sn.goal ? { col: sn.goal.col, row: sn.goal.row } : null;
+    updateSpawn();
+    winner = null;
+    comboQueue.length = 0;
+    if (startCell) respawn();
+    syncTemplate();
+    updateHud();
+  }
+
+  function markLayoutChanged() {
+    if (!isEditLocked()) { mapVerified = false; mapVerifiedAt = 0; }
+    syncStartCard();                 // 每次地图变化都刷新开工三步的勾选状态
+  }
+
+  function pushUndo(sn) {
+    undoStack.push(sn);
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack.length = 0;
+  }
+
+  function undoEdit() {
+    if (isEditLocked() || !editorMode || !undoStack.length) return false;
+    redoStack.push(editSnapshot());
+    applySnapshot(undoStack.pop());
+    flash('已撤回');
+    return true;
+  }
+
+  function redoEdit() {
+    if (isEditLocked() || !editorMode || !redoStack.length) return false;
+    undoStack.push(editSnapshot());
+    applySnapshot(redoStack.pop());
+    flash('已恢复');
+    return true;
+  }
+
+  /* 一键清空：只清玩家放置的元素，模板基底（grid）保留 */
+  function clearCanvas() {
+    if (isEditLocked()) return false;
+    pushUndo(editSnapshot());
+    mapVerified = false;              // 清空后强制回到待验证
+    markLayoutChanged();
+    traps = [];
+    blocks = [];
+    startCell = null;
+    goalCell = null;
+    buildPlatforms();
+    rebuildSolids();
+    updateSpawn();
+    winner = null;
+    comboQueue.length = 0;
+    syncTemplate();
+    updateHud();
+    flash('画布已清空（模板基底保留）');
+    return true;
+  }
+
+  /* 空白画布草稿：离开前存，回来时恢复（不落盘，刷新即清） */
+  function draftKey(size) { var n = size || COLS; return n + 'x' + n + '_blank'; }
+
+  function saveDraft() {
+    if (mapMode !== 'blank' || isEditLocked()) return;
+    draftCache[draftKey()] = { snap: editSnapshot(), verified: mapVerified };
+  }
+
+  function restoreDraft(size) {
+    currentTemplate = -1;              // 空白模式不归属任何模板，防止 syncTemplate 写串
+    var d = draftCache[draftKey(size)];
+    if (!d) return false;
+    applySnapshot(d.snap);
+    mapVerified = !!d.verified;
+    updateHud();
+    return true;
+  }
+
+  function resetHistory() {
+    undoStack.length = 0;
+    redoStack.length = 0;
+  }
+
+  /* 放置失败的统一文案 */
+  var MSG = {
+    bounds: '超出画布范围，无法放置',
+    locked: '该区域为模板基底，不可修改',
+    budget: '当前机关数量已达上限',
+    unreachable: '该位置不可达，请调整路线',
+    noSpace: '该位置空间不足，无法放置'
+  };
+
+  /* ---------- 半官图基底（仅地形，无任何机关/终点） ---------- */
+  var TEMPLATES = [
+    {
+      name: '直道基底',
+      size: 10,
+      rows: [
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '..........',
+        '##########',
+        '##########'
+      ],
+      traps: [],
+      blocks: []
+    },
+    {
+      name: '高台基底',
+      size: 10,
+      rows: [
+        '..........',
+        '..........',
+        '..##......',
+        '..##......',
+        '..........',
+        '.......##.',
+        '.......##.',
+        '..........',
+        '##...##...',
+        '##...##...'
+      ],
+      traps: [],
+      blocks: []
+    },
+    {
+      /* 双层夹层：上层薄平台 / 中间空腔 / 下层迂回通道，上下两条路线都能走 */
+      name: '夹层基底',
+      size: 10,
+      rows: [
+        '..........',
+        '..#####...',
+        '..........',
+        '.....#####',
+        '..........',
+        '.#......#.',
+        '..........',
+        '...####...',
+        '##......##',
+        '##......##'
+      ],
+      traps: [],
+      blocks: []
+    }
+  ];
+
+  /* ---------- 官图成品关卡：空白画布起家，结构多样（横向/下探/迂回/孤岛） ---------- */
+  var OFFICIAL = [
+    {
+      /* 玩家自制关卡 2（截图 1:1 导入）：矮扁起跳台 + 侧刺满格 + 弹簧 + 移动平台 */
+      name: '玩家自制2', size: 6, rank: 1,
+      start: { col: 0, row: 3 }, goal: { col: 4, row: 2 },
+      rows: ['......', '......', '......', '......', '......', '......'],
+      blocks: [
+        { col: 0, row: 3, size: 'flat' },
+        { col: 4, row: 2, size: 'flat' },
+        { col: 2, row: 4, size: 'flat' },
+        { col: 1, row: 5, size: 'bar' },
+        { col: 4, row: 5, size: 'full' }
+      ],
+      traps: [
+        { type: 'spring', col: 1, row: 4, dist: 2 },
+        { type: 'spike', col: 4, row: 5, mount: 'left' },
+        { type: 'mover', col: 3, row: 3, w: 1, dir: 'right', range: 2, speed: 70 }
+      ]
+    },
+    {
+      /* 玩家自制关卡（截图 1:1 导入）：夹层跳台 + 侧刺 + 弹簧 + 双移动平台 */
+      name: '玩家自制', size: 6, rank: 2,
+      start: { col: 0, row: 4 }, goal: { col: 1, row: 1 },
+      rows: ['......', '......', '......', '......', '......', '......'],
+      blocks: [
+        { col: 0, row: 4, size: 'flat' },
+        { col: 1, row: 2, size: 'full' },
+        { col: 2, row: 3, size: 'bar' },
+        { col: 4, row: 4, size: 'flat' },
+        { col: 5, row: 4, size: 'bar' },
+        { col: 3, row: 5, size: 'bar' }
+      ],
+      traps: [
+        { type: 'spike', col: 2, row: 3, mount: 'right' },
+        { type: 'spike', col: 4, row: 4 },
+        { type: 'spring', col: 5, row: 3, dist: 2 },
+        { type: 'mover', col: 3, row: 3, w: 1, dir: 'right', range: 1, speed: 70 },
+        { type: 'mover', col: 1, row: 5, w: 1, dir: 'right', range: 1, speed: 70 }
+      ]
+    },
+    {
+      /* 6×6 迂回折返：先上后下，中间一根满格柱当转折点 */
+      name: '折返', size: 6, rank: 0,
+      start: { col: 0, row: 4 }, goal: { col: 5, row: 3 },
+      rows: ['......', '......', '......', '......', '......', '......'],
+      blocks: [
+        { col: 0, row: 4, size: 'flat' },
+        { col: 1, row: 3, size: 'flat' },
+        { col: 2, row: 4, size: 'bar' },
+        { col: 3, row: 4, size: 'flat' },
+        { col: 4, row: 4, size: 'flat' },
+        { col: 5, row: 4, size: 'bar' }
+      ],
+      traps: [
+        { type: 'spike', col: 1, row: 4 },
+        { type: 'spike', col: 4, row: 3 }
+      ]
+    },
+    {
+      /* 10×10 孤岛平台：零散浮空岛，靠精准落点横向推进 */
+      name: '孤岛', size: 10,
+      start: { col: 0, row: 8 }, goal: { col: 9, row: 5 },
+      rows: [
+        '..........', '..........', '..........', '..........', '..........',
+        '..........', '..........', '..........', '..........', '..........'
+      ],
+      blocks: [
+        { col: 0, row: 8, size: 'flat' },
+        { col: 2, row: 8, size: 'flat' },
+        { col: 4, row: 9, size: 'bar' },
+        { col: 6, row: 8, size: 'flat' },
+        { col: 7, row: 7, size: 'flat' },
+        { col: 8, row: 6, size: 'flat' },
+        { col: 9, row: 5, size: 'flat' }
+      ],
+      traps: [
+        { type: 'spike', col: 1, row: 9 },
+        { type: 'spike', col: 5, row: 9 },
+        { type: 'spike', col: 6, row: 7 }
+      ]
+    },
+    {
+      /* 玩家自建 10×10（按作者文字表格 1:1 录入） */
+      name: '动台阶梯', size: 10,
+      start: { col: 0, row: 8 }, goal: { col: 8, row: 3 },
+      rows: [
+        '..........', '..........', '..........', '..........', '..........',
+        '..........', '..........', '..........', '..........', '..........'
+      ],
+      blocks: [
+        { col: 8, row: 3, size: 'flat' },
+        { col: 4, row: 4, size: 'flat' },
+        { col: 2, row: 5, size: 'bar' },
+        { col: 6, row: 5, size: 'bar' },
+        { col: 8, row: 5, size: 'full' },
+        { col: 9, row: 5, size: 'flat' },
+        { col: 3, row: 6, size: 'full' },
+        { col: 2, row: 8, size: 'flat' },
+        { col: 7, row: 8, size: 'full' },
+        { col: 0, row: 9, size: 'bar' },
+        { col: 6, row: 9, size: 'full' }
+      ],
+      traps: [
+        { type: 'mover', col: 7, row: 4, w: 1, dir: 'right', range: 1, speed: 70 },
+        { type: 'mover', col: 4, row: 6, w: 1, dir: 'right', range: 2, speed: 70 },
+        { type: 'mover', col: 4, row: 9, w: 1, dir: 'right', range: 1, speed: 70 },
+        { type: 'spike', col: 2, row: 5 },
+        { type: 'spring', col: 2, row: 5, mount: 'right', dist: 2 },
+        { type: 'spring', col: 8, row: 5, dist: 2 },
+        { type: 'spike', col: 3, row: 6, mount: 'right' },
+        { type: 'spike', col: 6, row: 8 },
+        { type: 'spike', col: 6, row: 9, mount: 'left' }
+      ]
+    },
+    {
+      /* 玩家自建 10×10（按作者文字表格 1:1 录入） */
+      name: '三台动跳', size: 10,
+      start: { col: 0, row: 8 }, goal: { col: 9, row: 8 },
+      rows: [
+        '..........', '..........', '..........', '..........', '..........',
+        '..........', '..........', '..........', '..........', '..........'
+      ],
+      blocks: [
+        { col: 6, row: 2, size: 'flat' },
+        { col: 3, row: 3, size: 'flat' },
+        { col: 8, row: 3, size: 'full' },
+        { col: 2, row: 4, size: 'flat' },
+        { col: 4, row: 4, size: 'full' },
+        { col: 9, row: 4, size: 'flat' },
+        { col: 0, row: 5, size: 'flat' },
+        { col: 6, row: 5, size: 'flat' },
+        { col: 1, row: 6, size: 'bar' },
+        { col: 5, row: 7, size: 'full' },
+        { col: 8, row: 7, size: 'bar' },
+        { col: 3, row: 8, size: 'flat' },
+        { col: 4, row: 8, size: 'bar' },
+        { col: 0, row: 9, size: 'bar' },
+        { col: 7, row: 9, size: 'flat' },
+        { col: 9, row: 9, size: 'bar' }
+      ],
+      traps: [
+        { type: 'mover', col: 8, row: 5, w: 1, dir: 'right', range: 1, speed: 70 },
+        { type: 'mover', col: 2, row: 6, w: 1, dir: 'right', range: 1, speed: 70 },
+        { type: 'mover', col: 2, row: 9, w: 1, dir: 'right', range: 2, speed: 70 },
+        { type: 'spike', col: 8, row: 3, mount: 'left' },
+        { type: 'spike', col: 4, row: 4, mount: 'left' },
+        { type: 'spike', col: 8, row: 7 },
+        { type: 'spike', col: 4, row: 8, mount: 'left' },
+        { type: 'spike', col: 4, row: 8 },
+        { type: 'spring', col: 1, row: 6, mount: 'right', dist: 2 },
+        { type: 'spring', col: 5, row: 7, mount: 'left', dist: 2 },
+        { type: 'spring', col: 7, row: 9, dist: 2 }
+      ]
+    },
+  ];
+
+  /* ---------- DOM ---------- */
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var stage = document.getElementById('stage');
+  var app = document.getElementById('app');
+  var hud = document.getElementById('hud');
+  var badge = document.getElementById('badge');
+  var elMode = document.getElementById('hud-mode');
+  var elBudget = document.getElementById('hud-budget');
+  var elProgress = document.getElementById('hud-progress');
+  var elReach = document.getElementById('hud-reach');
+  var elModeSeg = document.getElementById('mode-seg');
+  var elSizeSeg = document.getElementById('size-seg');
+  var elSizeBlock = document.getElementById('size-block');
+  var elSizeHint = document.getElementById('size-hint');
+  var elSizeConfirm = document.getElementById('size-confirm');
+  var elReachChk = document.getElementById('chk-reach');
+  var elReachWarn = document.getElementById('reach-warn');
+  var elShareRules = document.getElementById('share-rules');
+  var elRulesText = document.getElementById('rules-text');
+  var elRulesStart = document.getElementById('rules-start');
+  var elRulesBtn = document.getElementById('rules-btn');
+  var elKeyHint = document.getElementById('key-hint');
+  var elDotStart = document.getElementById('dot-start');
+  var elDotGoal = document.getElementById('dot-goal');
+  var elDotWin = document.getElementById('dot-win');
+  var elStarterModal = document.getElementById('starter-modal');
+  var elStartCard = document.getElementById('start-card');
+  var elStepStart = document.getElementById('step-start');
+  var elStepGoal = document.getElementById('step-goal');
+  var elStepWin = document.getElementById('step-win');
+  var elStepsDone = document.getElementById('steps-done');
+  var elStartCardOk = document.getElementById('start-card-ok');
+  var elStartCardOpen = document.getElementById('start-card-open');
+  var elGuideModal = document.getElementById('guide-modal');
+  var elGuideStart = document.getElementById('guide-start');
+  var guideOpen = false;
+  var guideShownOnce = false;
+  var elShareModal = document.getElementById('share-modal');
+  var elShareResult = document.getElementById('share-result');
+  var elShareUrl = document.getElementById('share-url');
+  var elMobileBlock = document.getElementById('mobile-block');
+  var elSharePanel = document.getElementById('share-panel');
+  var elShareInfo = document.getElementById('share-info');
+  var elShareState = document.getElementById('share-state');
+  var elBtnShare = document.getElementById('btn-share');
+  var elBtnRemix = document.getElementById('btn-remix');
+  var elModalTest = document.getElementById('modal-test');
+  var elModalCancel = document.getElementById('modal-cancel');
+  var elShareCopy = document.getElementById('share-copy');
+  var elShareClose = document.getElementById('share-close');
+  var reachWarnTimer = 0;
+  var elSemiHint = document.getElementById('semi-hint');
+  var elBlankHint = document.getElementById('blank-hint');
+  var elSemiToast = document.getElementById('semi-toast');
+  var elEditToast = document.getElementById('edit-toast');
+  var editToastTimer = 0;
+  var semiToastTimer = 0;
+  var elEditTools = document.getElementById('edit-tools');
+  var elBtnUndo = document.getElementById('btn-undo');
+  var elBtnRedo = document.getElementById('btn-redo');
+  var elBtnClear = document.getElementById('btn-clear');
+  var elClearConfirm = document.getElementById('clear-confirm');
+  var elClearYes = document.getElementById('clear-yes');
+  var elClearNo = document.getElementById('clear-no');
+  var elMapModeSeg = document.getElementById('mapmode-seg');
+  var elMapModeBlock = document.getElementById('mapmode-block');
+  var elTpl = document.getElementById('hud-tpl');
+  var elState = document.getElementById('hud-state');
+  var elHp = document.getElementById('hud-hp');
+  var elApex = document.getElementById('hud-apex');
+  var elVel = document.getElementById('hud-vel');
+  var elFps = document.getElementById('hud-fps');
+  var elSps = document.getElementById('hud-sps');
+  var elScale = document.getElementById('hud-scale');
+  var elPos = document.getElementById('hud-pos');
+  var elKeys = document.getElementById('hud-keys');
+  var elNote = document.getElementById('hud-note');
+  var elFlash = document.getElementById('hud-flash');
+
+  /* ---------- 状态 ---------- */
+  var grid = [];
+  var traps = [];
+  var blocks = [];
+  var platforms = [];
+  var staticSolids = [];            // 墙 + 瓦片 + 方块（预生成）
+  var currentTemplate = 0;
+  var currentOfficial = 0;          // 当前官图关卡序号（按尺寸分组）
+  var spawnPoint = { x: 0, y: 0 };
+
+  /* 本地双人：P1 = A/D/W，P2 = ←/→/↑ */
+  var PLAYER_CTRL = [
+    { left: 'a', right: 'd', jump: 'w', extraJump: ' ' },
+    { left: 'arrowleft', right: 'arrowright', jump: 'arrowup', extraJump: null }
+  ];
+  var PLAYER_COLOR = [
+    { body: ['#84b2ff', '#3f7dff'], tag: '#9cc2ff', name: 'P1' },
+    { body: ['#ffc98a', '#f08a3c'], tag: '#ffcf9a', name: 'P2' }
+  ];
+
+  function makePlayer(i) {
+    return {
+      id: i,
+      name: PLAYER_COLOR[i].name,
+      color: PLAYER_COLOR[i],
+      ctrl: PLAYER_CTRL[i],
+      x: 0, y: 0, vx: 0, vy: 0,
+      onGround: true, facing: 1, moveDir: 0,
+      stepVisual: 0, stepUsed: false, lastStepRise: 0,
+      jumpTrack: { active: false, startY: 0, apex: 0 },
+      lastApex: 0,
+      launchTimer: 0, launchDir: -1, launchHit: false,
+      riding: null,
+      hp: HP_MAX, invincible: 0,
+      stun: 0,
+      jumpQueued: false,
+      jumpBuffer: 0,
+      coyote: 0,
+      stompCool: 0,
+      spawnProtect: 0,
+      wins: 0
+    };
+  }
+
+  /* player 指向“当前正在处理”的角色；循环外默认指 P1 */
+  var players = [makePlayer(0), makePlayer(1)];
+  var player = players[0];
+  var held = new Set();             // 当前按住的原始按键
+  var comboQueue = [];              // 连坐队列
+  var winner = null;                // 先到终点的人
+  var showBoxes = true;
+
+  var gameMode = 'duo';             // 'solo' | 'duo'（PC 默认双人）
+  var mapMode = 'semi';             // 地图模式：'blank' 空白 / 'semi' 半官图 / 'official' 官图
+  /* 手机端判定：只在启动时判断一次；手机只兼容 6×6 */
+  var MOBILE = (function () {
+    try {
+      if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) return true;
+    } catch (e) { /* 忽略 */ }
+    return (window.innerWidth || 1280) < 760;
+  })();
+  var spawnSlots = [];              // 每个玩家的出生坐标（单人只有 1 个）
+  var isFirstSpawnRound = true;     // 本局初次开局标记（双人专用）
+  var spawnSafeFrameCount = 0;      // 首次操作按键触发的开局保护倒计时（物理帧）
+
+  var editorMode = false;
+  var activeTool = 0;
+  var activeMount = 'top';        // 机关挂载方位：top / left / right
+  var activeSpringDist = 2;       // 弹簧弹射距离：1 格 / 2 格
+  var activeMoverRange = 2;       // 移动平台移动范围：1 格 / 2 格
+  var activeMoverDir = null;      // 移动方向：'left' / 'right'（不设默认）
+
+  var startCell = null;           // 起点（唯一）
+  var goalCell = null;            // 终点（唯一）
+
+  var scale = 1;
+  var lastTs = 0;
+  var acc = 0;
+  var hudTimer = 0;
+  var frameCount = 0;
+  var stepCount = 0;
+  var fps = 0;
+  var sps = 0;
+  var flashTimer = 0;
+
+  /* ---------- 地形 / 方块 / 固体 ---------- */
+  function parseRows(rows) {
+    var out = [];
+    for (var r = 0; r < ROWS; r++) {
+      var line = rows[r] || '';
+      var row = [];
+      for (var c = 0; c < COLS; c++) row.push(line.charAt(c) === '#');
+      out.push(row);
+    }
+    return out;
+  }
+
+  function solidAt(col, row) {
+    if (col < 0 || col >= COLS) return true;
+    if (row < 0) return false;
+    if (row >= ROWS) return false;
+    return grid[row][col] === true;
+  }
+
+  /* 方块：底部对齐 + 水平居中，均不超出单格 */
+  function blockRect(b) {
+    var def = BLOCKS[b.size] || BLOCKS.full;
+    return {
+      x: b.col * CELL + (CELL - def.w) / 2,
+      y: b.row * CELL + (CELL - def.h),
+      w: def.w,
+      h: def.h
+    };
+  }
+
+  function rebuildSolids() {
+    staticSolids = [];
+    // 左右边界墙（上下留足空间，防止从上方绕出）
+    staticSolids.push({ x: -CELL, y: -CELL * 20, w: CELL, h: CELL * 40, kind: 'wall' });
+    staticSolids.push({ x: MAP, y: -CELL * 20, w: CELL, h: CELL * 40, kind: 'wall' });
+
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (!grid[r][c]) continue;
+        staticSolids.push({ x: c * CELL, y: r * CELL, w: CELL, h: CELL, kind: 'tile' });
+      }
+    }
+
+    for (var i = 0; i < blocks.length; i++) {
+      var rect = blockRect(blocks[i]);
+      rect.kind = 'block';
+      staticSolids.push(rect);
+    }
+
+    mapVersion++;                       // 地形/方块变了，可达缓存作废
+  }
+
+  /* ---------- 机关几何：可架在地形、任意尺寸方块上，窄条还支持左右侧面 ---------- */
+  function blockInCell(col, row) {
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].col === col && blocks[i].row === row) return blocks[i];
+    }
+    return null;
+  }
+
+  /* 机关在某格的支撑面：格内方块顶面 > 格底（下方地形/方块顶面） */
+  function supportYAt(col, row) {
+    var b = blockInCell(col, row);
+    if (b) {
+      var r = blockRect(b);
+      return r.y;
+    }
+    return (row + 1) * CELL;
+  }
+
+  /* 侧面挂载：方形/窄条贴左/右面；窄条在格内，方形会探到相邻格的边缘 */
+  function sideRectFor(col, row, mount, type) {
+    var b = blockInCell(col, row);
+    var x;
+    if (b && b.size === 'bar') {
+      x = mount === 'left' ? (col * CELL + 16) - SIDE_W : (col * CELL + 48);
+    } else {
+      x = mount === 'left' ? (col * CELL) - SIDE_W : (col * CELL + CELL);
+    }
+    return {
+      x: x,
+      y: row * CELL + (CELL - SIDE_H) / 2,
+      w: SIDE_W,
+      h: SIDE_H
+    };
+  }
+
+  /* 计算机关最终矩形（按 mount 决定顶面/左侧/右侧） */
+  function layoutTrap(t) {
+    if (t.type === 'mover') return t;
+    var mount = t.mount || 'top';
+
+    if (mount === 'left' || mount === 'right') {
+      var side = sideRectFor(t.col, t.row, mount, t.type);
+      t.x = side.x;
+      t.y = side.y;
+      t.w = side.w;
+      t.h = side.h;
+      return t;
+    }
+
+    var support = supportYAt(t.col, t.row);
+    if (t.type === 'spring') {
+      t.w = 48;
+      t.h = 30;
+      t.x = t.col * CELL + 8;
+    } else {
+      t.w = SPIKE_W;
+      t.h = SPIKE_H;
+      t.x = t.col * CELL + (CELL - SPIKE_W) / 2;
+    }
+    t.y = support - t.h;
+    return t;
+  }
+
+  function platformSolid(p) {
+    return { x: p.x, y: p.y, w: p.w, h: p.h, kind: 'platform', platform: p };
+  }
+
+  function allSolids() {
+    var out = staticSolids.slice();
+    for (var i = 0; i < platforms.length; i++) out.push(platformSolid(platforms[i]));
+    return out;
+  }
+
+  /* ---------- 模板 ---------- */
+  /* 单人 / 双人模式切换：编辑中即时生效；游玩中切换 = 重置本局 */
+  function setMode(m) {
+    if (COLS === 6 && m !== 'solo') return gameMode;   // 6×6 只支持单人
+    var next = m === 'solo' ? 'solo' : 'duo';
+    if (next === gameMode) return gameMode;
+    gameMode = next;
+    clearKeys();
+    comboQueue.length = 0;
+    winner = null;
+    updateSpawn();
+    if (!editorMode) respawn();
+    updateHud();
+    flash(next === 'solo' ? '单人模式' : '双人模式');
+    return gameMode;
+  }
+
+  /* 当前尺寸下的官方成品关卡索引 */
+  function officialList(size) {
+    var out = [];
+    for (var i = 0; i < OFFICIAL.length; i++) {
+      if (OFFICIAL[i].size === size) out.push(i);
+    }
+    out = out.slice(0, 1);          // 砍：官图只保留 1 张做展示
+    out.sort(function (a, b) {
+      var ra = typeof OFFICIAL[a].rank === 'number' ? OFFICIAL[a].rank : a;
+      var rb = typeof OFFICIAL[b].rank === 'number' ? OFFICIAL[b].rank : b;
+      return ra - rb;
+    });
+    return out;
+  }
+
+  /* 当前尺寸下的模板索引列表 */
+  function sizeTemplates(size) {
+    var out = [];
+    for (var i = 0; i < TEMPLATES.length; i++) {
+      if (TEMPLATES[i].size === size) out.push(i);
+    }
+    return out;
+  }
+
+  /* 当前尺寸支持的地图模式 */
+  function modeList(size) {
+    return modeListRaw(size).filter(function (m) { return m !== 'semi'; });   // 砍：不提供半官图
+  }
+
+  function modeListRaw(size) {
+    return size === 6 ? ['blank', 'official'] : ['blank', 'semi', 'official'];
+  }
+
+  /* 官图模式：完全锁定，不可编辑 */
+  function isEditLocked() {
+    return mapMode === 'official' || shareMode;
+  }
+
+  function modeLabel(mode) {
+    if (mode === 'blank') return '空白画布';
+    if (mode === 'semi') return '半官图编辑';
+    return '官图游玩';
+  }
+
+  /* 半官图居中轻提示：2 秒后自动淡出 */
+  /* 进入编辑模式时让角色回到起点；没有起点就藏到画布外 */
+  function resetPlayersForEditor() {
+    comboQueue.length = 0;
+    winner = null;
+    clearKeys();
+    if (startCell) {
+      updateSpawn();
+      respawn();
+    } else {
+      for (var i = 0; i < players.length; i++) {
+        var p = players[i];
+        p.x = -999;
+        p.y = -999;
+        p.vx = 0;
+        p.vy = 0;
+        p.onGround = false;
+      }
+    }
+  }
+
+  /* 画布顶部标红提示：终点已放下但当前还没有可行路线 */
+  function showReachWarn() {
+    if (!elReachWarn) return;
+    elReachWarn.hidden = false;
+    elReachWarn.classList.add('on');
+    if (reachWarnTimer) clearTimeout(reachWarnTimer);
+    reachWarnTimer = setTimeout(function () {
+      elReachWarn.classList.remove('on');
+      reachWarnTimer = setTimeout(function () { elReachWarn.hidden = true; }, 220);
+    }, 2500);
+  }
+
+  /* 全局单例弱提示：同一时刻最多一条 */
+  function hideToast() {
+    if (editToastTimer) { clearTimeout(editToastTimer); editToastTimer = 0; }
+    if (reachWarnTimer) { clearTimeout(reachWarnTimer); reachWarnTimer = 0; }
+    if (elEditToast) { elEditToast.classList.remove('on'); elEditToast.hidden = true; }
+    if (elSemiToast) { elSemiToast.classList.remove('on'); elSemiToast.hidden = true; }
+    if (elReachWarn) { elReachWarn.classList.remove('on'); elReachWarn.hidden = true; }
+  }
+
+  function showToast(text) {
+    if (!elEditToast) return;
+    hideToast();
+    elEditToast.textContent = text;
+    elEditToast.hidden = false;
+    elEditToast.classList.add('on');
+    editToastTimer = setTimeout(function () {
+      elEditToast.classList.remove('on');
+      editToastTimer = setTimeout(function () { elEditToast.hidden = true; }, 220);
+    }, 2000);
+  }
+
+  /* ---------- 开工三步：编辑器第一道门（只引导，不阻塞） ---------- */
+  var startCardDismissed = false;    // 用户点过「知道了」
+  var startCardFinished = false;     // 三步全部完成过
+  var cardTicks = { start: false, goal: false };   // 只认"进入后自己放过"，复刻带进来的不算
+  var editorUnlocked = false;        // 三步全完成并点按钮后，才解锁完整编辑
+
+  function setStep(el, done) {
+    if (!el) return;
+    el.classList.toggle('done', !!done);
+    var i = el.querySelector ? el.querySelector('i') : null;
+    if (i) i.textContent = done ? '✔' : '□';
+  }
+
+  function startCardReady() {
+    return cardTicks.start && cardTicks.goal && !!mapVerified;
+  }
+
+  function syncStartCard() {
+    var inEditor = editorMode && !isEditLocked() && !shareMode;
+    if (elDotStart) elDotStart.classList.toggle('done', cardTicks.start);
+    if (elDotGoal) elDotGoal.classList.toggle('done', cardTicks.goal);
+    if (elDotWin) elDotWin.classList.toggle('done', !!mapVerified);
+
+    if (elStartCard) elStartCard.hidden = !(inEditor && !editorUnlocked);
+    if (!inEditor || editorUnlocked) return;
+
+    setStep(elStepStart, cardTicks.start);
+    setStep(elStepGoal, cardTicks.goal);
+    setStep(elStepWin, !!mapVerified);
+
+    var all = startCardReady();
+    if (elStepsDone) elStepsDone.hidden = !all;
+    if (elStartCardOk) {
+      elStartCardOk.classList.toggle('ready', all);
+      if (elStartCardOk.disabled === all) elStartCardOk.disabled = !all;
+    }
+  }
+
+  /* ---------- 起步模板（选项 C）：给用户一张能玩的底图 ---------- */
+  function setMapContent(blockList, trapList, start, goal) {
+    blocks = blockList.map(function (b) { return { col: b.col, row: b.row, size: b.size }; });
+    traps = trapList.map(function (t) { var o = {}; for (var k in t) o[k] = t[k]; o.cool = 0; return o; });
+    for (var i = 0; i < traps.length; i++) layoutTrap(traps[i]);
+    buildPlatforms();
+    rebuildSolids();
+    startCell = start ? { col: start.col, row: start.row } : null;
+    goalCell = goal ? { col: goal.col, row: goal.row } : null;
+    updateSpawn();
+    winner = null;
+    comboQueue.length = 0;
+    if (startCell) respawn();
+    else resetPlayersForEditor();
+    updateHud();
+  }
+
+  function applyStarter(kind) {
+    if (elStarterModal) elStarterModal.hidden = true;
+    var COLS_N = COLS;
+    var bs = [], ts = [];
+    if (kind === 'grass') {
+      for (var c = 0; c < COLS_N; c++) bs.push({ col: c, row: 9, size: 'full' });
+    } else if (kind === 'steps') {
+      for (var c2 = 0; c2 < COLS_N; c2++) bs.push({ col: c2, row: 9, size: 'full' });
+      bs.push({ col: 3, row: 8, size: 'full' });
+      bs.push({ col: 4, row: 7, size: 'full' });
+      bs.push({ col: 5, row: 6, size: 'full' });
+    } else if (kind === 'trap') {
+      for (var c3 = 0; c3 < COLS_N; c3++) bs.push({ col: c3, row: 9, size: 'full' });
+      ts.push({ type: 'spring', col: 3, row: 8, mount: 'top', dist: 2 });
+      ts.push({ type: 'spike', col: 6, row: 8, mount: 'top' });
+    }
+    // 先清空整张画布（含模板基底瓦片），再写入起步内容
+    loadBlank(COLS);
+    // 起终点一律不给，必须用户自己放，这样三步才有意义
+    setMapContent(bs, ts, null, null);
+    startCardDismissed = false;
+    editorUnlocked = false;
+    editorMode = true;                 // 选完模板直接进编辑态
+    syncSegButtons();
+    syncStartCard();
+    updateHud();
+    flash(kind === 'blank' ? '先铺地面，再放起点和终点' : '底图好了 · 放起点 → 放终点 → 按 E 通关');
+  }
+
+  function maybeShowStarter() {
+    if (!elStarterModal || editorUnlocked) return;
+    if (blocks.length || traps.length || startCell || goalCell) return;
+    elStarterModal.hidden = false;
+  }
+
+  /* ---------- 分享页：规则引导 / 按键提示 / 机关即时提示 ---------- */
+  var trapTips = [];          // 机关首次遇到提示
+  var tipSeen = {};           // 已提示过的机关类型
+
+  function rulesTextForShare() {
+    var duo = gameMode === 'duo';
+    return duo
+      ? '<b>P1</b>：A/D 移动 + W 跳；<b>P2</b>：←/→ 移动 + ↑ 跳。<br>可以踩队友的头借力，两人一起到旗子即通关。'
+      : '<b>A/D</b> 左右移动，<b>W / 空格</b> 跳跃，走到旗子即通关。';
+  }
+
+  function keyHintFor() {
+    return gameMode === 'duo'
+      ? 'P1 A/D·W 跳 ｜ P2 ←/→·↑ 跳 ｜ R 重开'
+      : 'A/D 移动 · W/空格 跳 · R 重开';
+  }
+
+  function refreshKeyHint() {
+    if (!elKeyHint) return;
+    elKeyHint.textContent = keyHintFor();
+    elKeyHint.hidden = false;
+  }
+
+  function rulesSeenKey() {
+    var sig = (shareMeta && shareMeta.clearedAt) || 0;
+    return 'weida_rules_' + COLS + '_' + sig + '_' + (location.hash || '').length;
+  }
+
+  function rulesSeen() {
+    try { return localStorage.getItem(rulesSeenKey()) === '1'; } catch (e) { return false; }
+  }
+
+  function markRulesSeen() {
+    try { localStorage.setItem(rulesSeenKey(), '1'); } catch (e) {}
+  }
+
+  function showShareRules() {
+    if (!elShareRules) return;
+    if (elRulesText) elRulesText.innerHTML = rulesTextForShare();
+    elShareRules.hidden = false;
+  }
+
+  function closeShareRules() {
+    if (elShareRules) elShareRules.hidden = true;
+    markRulesSeen();
+    clearKeys();
+  }
+
+  /* 机关首次遇到：各飘一句，2 秒消失 */
+  function spawnTrapTips() {
+    trapTips.length = 0;
+    tipSeen = {};
+    var label = {
+      spike: '碰到会失败，躲开',
+      spring: '踩上去会弹起来',
+      springUp: '踩上去会向上弹起',
+      mover: '站上去它会带你走'
+    };
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      var key = t.type === 'spring' && t.axis === 'up' ? 'springUp' : t.type;
+      if (tipSeen[key]) continue;
+      tipSeen[key] = true;
+      trapTips.push({
+        text: label[key] || '',
+        x: t.col * CELL + CELL / 2,
+        y: t.row * CELL,
+        t: 2.0
+      });
+    }
+  }
+
+  /* ---------- 步骤 1：开局操作说明面板（纯 UI，不改游戏状态） ---------- */
+  function showGuide() {
+    if (!elGuideModal) return;
+    elGuideModal.hidden = false;
+    guideOpen = true;
+  }
+
+  function closeGuide() {
+    if (elGuideModal) elGuideModal.hidden = true;
+    guideOpen = false;
+    clearKeys();
+  }
+
+  function maybeShowGuide() {
+    if (guideShownOnce) return;        // 一局只弹一次：切关 / 切模板 / 按 123 T 都不再弹
+    if (editorMode || shareMode) return;
+    if (!startCell || !goalCell) return;
+    guideShownOnce = true;
+    showGuide();
+  }
+
+  /* ---------- 分享：数据编码 / 链接 / 只读游玩 ---------- */
+  function b64enc(str) {
+    return btoa(unescape(encodeURIComponent(str)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function b64dec(str) {
+    var t = String(str).replace(/-/g, '+').replace(/_/g, '/');
+    while (t.length % 4) t += '=';
+    return decodeURIComponent(escape(atob(t)));
+  }
+
+  function buildSharePayload() {
+    return {
+      v: 1,
+      size: COLS,
+      start: startCell ? { col: startCell.col, row: startCell.row } : null,
+      goal: goalCell ? { col: goalCell.col, row: goalCell.row } : null,
+      blocks: blocks.map(function (b) { return { col: b.col, row: b.row, size: b.size }; }),
+      traps: traps.map(function (t) {
+        var o = { type: t.type, col: t.col, row: t.row };
+        if (t.mount) o.mount = t.mount;            // 挂载方位（顶面/左/右）
+        if (t.axis) o.axis = t.axis;               // 弹簧类型：up 上弹 / 缺省=横弹
+        if (t.dir) o.dir = t.dir;                  // 移动平台方向
+        if (t.range) o.range = t.range;            // 移动平台行程
+        if (t.speed) o.speed = t.speed;            // 移动平台速度
+        if (t.w) o.w = t.w;                        // 移动平台宽度
+        if (t.dist) o.dist = t.dist;               // 弹簧弹射距离
+        return o;
+      }),
+      rows: grid.map(function (r) { return r.map(function (v) { return v ? '#' : '.'; }).join(''); }),
+      meta: { clearedByAuthor: !!mapVerified, clearedAt: mapVerified ? mapVerifiedAt : 0 }
+    };
+  }
+
+  function buildShareUrl() {
+    var p = buildSharePayload();
+    var base = location.href.split('#')[0];
+    return base + '#/play/' + p.size + 'x' + p.size + '?map=' + b64enc(JSON.stringify(p));
+  }
+
+  function parseShareHash() {
+    var h = location.hash || '';
+    if (h.indexOf('#/play/') !== 0) return null;        // 不是分享链接
+    var m = /^#\/play\/(6|10)x\1\?map=([A-Za-z0-9\-_]+)$/.exec(h);
+    if (!m) return { error: true };                     // 像分享链接但参数损坏
+    var size = parseInt(m[1], 10);
+    var data;
+    try { data = JSON.parse(b64dec(m[2])); } catch (e) { return { error: true }; }
+    if (!data || data.v !== 1 || data.size !== size) return { error: true };
+    return { size: size, data: data };
+  }
+
+  function enterShareMode(size, data) {
+    if (size !== COLS) setCanvasGeometry(size);
+    shareMode = true;
+    shareMeta = data.meta || null;
+    currentTemplate = -1;
+    mapMode = 'blank';
+    editorMode = false;
+    applySnapshot({
+      rows: data.rows && data.rows.length ? data.rows : null,
+      traps: data.traps || [],
+      blocks: data.blocks || [],
+      start: data.start || null,
+      goal: data.goal || null
+    });
+    refreshKeyHint();
+    spawnTrapTips();
+    if (!rulesSeen()) showShareRules();
+
+    if (elShareInfo) {
+      var cleared = !!(data.meta && data.meta.clearedByAuthor);
+      var when = data.meta && data.meta.clearedAt ? new Date(data.meta.clearedAt) : null;
+      elShareInfo.textContent = (size === 6 ? '6×6' : '10×10') + ' · ' +
+        (cleared ? ('作者已实测通关' + (when ? '（' + when.toLocaleDateString() + '）' : '')) : '待验证地图');
+    }
+    updateHud();
+  }
+
+  function exitShareToEditor() {
+    if (!shareMode) return;
+    shareMode = false;
+    shareMeta = null;
+    mapMode = 'blank';            // 复刻后是普通空白画布，不继承分享图的只读/模板锁
+    currentTemplate = -1;
+    mapVerified = false;
+    mapVerifiedAt = 0;
+    editorMode = true;
+    paletteCollapsed = COLS === 6;
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    delete draftCache[draftKey(COLS)];   // 复刻内容不写进空白草稿，切回空白即纯净网格
+    cardTicks.start = false;             // 复刻带进来的起终点不算"自己放的"
+    cardTicks.goal = false;
+    editorUnlocked = false;              // 复刻后重新走三步
+    startCardFinished = false;
+    if (elShareRules) elShareRules.hidden = true;   // 关掉可能还开着的分享规则弹窗
+    resetPlayersForEditor();
+    syncSegButtons();             // 关键：把被分享模式隐藏的「地图模式 / 尺寸 / 编辑工具」恢复出来
+    updateHud();
+    flash('已复刻为你的独立副本，模板选择已恢复（需重新通关才能分享）');
+  }
+
+  function quickTestPlay() {
+    if (elShareModal) elShareModal.hidden = true;
+    editorMode = false;
+    clearKeys();
+    updateHud();
+    flash('去通关吧：走到终点即算通关');
+  }
+
+  function showEditHint() { showToast('按 E 键 切换编辑 / 游玩模式'); }
+  function showSemiHintToast() { showToast('半官图需自行放置起点与终点，按 E 键切换模式'); }
+
+  /* 画布上是否还残留模板基底瓦片（复刻半官图后会残留） */
+  function gridHasTiles() {
+    for (var r = 0; r < grid.length; r++) {
+      for (var c = 0; c < grid[r].length; c++) {
+        if (grid[r][c]) return true;
+      }
+    }
+    return false;
+  }
+
+  /* 只清除模板基底瓦片，保留玩家自己摆放的方块 / 机关 / 起终点 */
+  function clearTemplateTiles() {
+    for (var r = 0; r < grid.length; r++) {
+      for (var c = 0; c < grid[r].length; c++) grid[r][c] = false;
+    }
+    rebuildSolids();
+    syncTemplate();
+    updateHud();
+  }
+
+  function setMapMode(mode) {
+    if (shareMode) return mapMode;                 // 只读游玩：禁止切换模式
+    if (modeList(COLS).indexOf(mode) < 0) return mapMode;
+    if (mode === mapMode) {
+      // 已经在空白模式，但画布残留模板基底：只清基底瓦片，保留自己放的方块与机关
+      if (mode === 'blank' && gridHasTiles()) {
+        clearTemplateTiles();
+        flash('基底已清空（你放的方块和机关都还在）');
+        return mapMode;
+      }
+      return mapMode;
+    }
+    hideToast();                       // 切换瞬间终止所有旧提示
+    saveDraft();                       // 离开前先把当前编辑内容存成草稿
+    if (mapMode === 'semi' && currentTemplate >= 0) { semiTemplateCache = currentTemplate; }
+    if (mapMode === 'blank') currentTemplate = -1;
+    mapMode = mode;
+
+    if (mode === 'blank') {
+      currentTemplate = -1;
+      if (!restoreDraft(COLS)) loadBlank(COLS);
+    } else if (mode === 'official') {
+      loadOfficial(0);
+    } else {
+      var tl = sizeTemplates(COLS);
+      var pick = 0;
+      if (semiTemplateCache !== null) {
+        for (var ci = 0; ci < tl.length; ci++) if (tl[ci] === semiTemplateCache) pick = ci;
+      }
+      loadTemplate(tl.length ? tl[pick] : 0);
+    }
+
+    if (mode === 'semi') showSemiHintToast();
+    else if (mode === 'blank') showEditHint();
+
+    if (mode === 'official') {
+      if (COLS === 6 && gameMode !== 'solo') setMode('solo');   // 6×6 只支持单人
+      if (editorMode) { editorMode = false; goalTint = false; goalFail = null; }
+    }
+    updateHud();
+    if (editorMode && !isEditLocked()) showEditHint();
+    flash(modeLabel(mode) + (mode === 'official' ? '（已锁定，仅可游玩）' : ''));
+    return mapMode;
+  }
+
+  /* 当前模板在本尺寸里的序号（0 起） */
+  function templateOrderInSize() {
+    var list = sizeTemplates(COLS);
+    for (var i = 0; i < list.length; i++) if (list[i] === currentTemplate) return i;
+    return 0;
+  }
+
+  /* 画布几何（尺寸/网格条数/画布高宽/布局）一次性同步 */
+  function setCanvasGeometry(size) {
+    COLS = size;
+    ROWS = size;
+    MAP = CELL * COLS;
+    canvas.width = MAP;
+    canvas.height = MAP;
+    layout();
+  }
+
+  function applyCanvasSize(size) {
+    if (shareMode) return;
+    if (size === 6) size = 10;      // 砍：本项目只做 10×10                         // 只读游玩：禁止切换画布尺寸
+    if (size !== 6 && size !== 10) return;
+    if (size === COLS && mapMode === 'blank' && currentTemplate < 0) return;
+    hideToast();
+    saveDraft();                       // 存当前尺寸的草稿
+    mapMode = 'blank';
+    currentTemplate = -1;
+    if (size !== COLS) setCanvasGeometry(size);   // 几何必须先切，草稿再按尺寸恢复
+    if (!restoreDraft(size)) loadBlank(size);
+    showEditHint();
+    if (size === 6 && gameMode !== 'solo') setMode('solo');
+    if (elSizeConfirm) elSizeConfirm.hidden = true;
+    flash(size === 6 ? '已切换到 6×6（空白画布）' : '已切换到 10×10（空白画布）');
+    updateHud();
+  }
+
+  /* 纯空白画布：没有地形、没有机关/方块、没有起终点 */
+  function loadBlank(size) {
+    COLS = size;
+    ROWS = size;
+    MAP = CELL * COLS;
+    canvas.width = MAP;
+    canvas.height = MAP;
+    layout();
+
+    currentTemplate = -1;
+    grid = [];
+    for (var r = 0; r < ROWS; r++) {
+      var row = [];
+      for (var c = 0; c < COLS; c++) row.push(false);
+      grid.push(row);
+    }
+    traps = [];
+    blocks = [];
+    buildPlatforms();
+    rebuildSolids();
+
+    startCell = null;
+    goalCell = null;
+    updateSpawn();
+
+    for (var pi = 0; pi < players.length; pi++) {
+      players[pi].hp = HP_MAX;
+      players[pi].invincible = 0;
+      players[pi].lastApex = 0;
+    }
+    comboQueue.length = 0;
+    winner = null;
+    resetHistory();
+    mapVerified = false;
+    paletteCollapsed = size === 6;    // 6×6 编辑默认收起面板，避免遮挡
+    flash('空白画布 ' + size + '×' + size + ' · 手动摆放所有元素');
+    updateHud();
+  }
+
+  function loadTemplate(index, silent) {
+    var n = TEMPLATES.length;
+    currentTemplate = ((index % n) + n) % n;
+    var t = TEMPLATES[currentTemplate];
+    applyLevelDef(t, silent, '模板 ' + (templateOrderInSize() + 1) + '/' + sizeTemplates(COLS).length + ' · ' + t.name);
+  }
+
+  /* 载入官图成品关卡（完整地形 + 全套机关 + 固定起终点，锁定不可编辑） */
+  function loadOfficial(index, silent) {
+    var list = officialList(COLS);
+    if (!list.length) return;
+    currentOfficial = ((index % list.length) + list.length) % list.length;
+    var def = OFFICIAL[list[currentOfficial]];
+    if (def.size !== COLS) {
+      COLS = def.size;
+      ROWS = def.size;
+      MAP = CELL * COLS;
+      canvas.width = MAP;
+      canvas.height = MAP;
+      layout();
+    }
+    applyLevelDef(def, silent, '官图 ' + (currentOfficial + 1) + '/' + list.length + ' · ' + def.name);
+  }
+
+  /* 把一份关卡定义铺到画布上 */
+  function applyLevelDef(t, silent, note) {
+    mapVerified = false;             // 通关标记只属于当前这份地图实例，换图即清空
+    mapVerifiedAt = 0;
+
+    // 模板自带尺寸：加载时同步画布尺寸
+    if (t.size && t.size !== COLS) {
+      COLS = t.size;
+      ROWS = t.size;
+      MAP = CELL * COLS;
+      canvas.width = MAP;
+      canvas.height = MAP;
+      layout();
+    }
+
+    grid = parseRows(t.rows);
+    traps = (t.traps || []).map(function (src) {
+      var copy = {};
+      for (var k in src) copy[k] = src[k];
+      copy.cool = 0;
+      return copy;
+    });
+    blocks = (t.blocks || []).map(function (b) {
+      return { col: b.col, row: b.row, size: b.size };
+    });
+
+    for (var i = 0; i < traps.length; i++) layoutTrap(traps[i]);
+
+    buildPlatforms();
+    rebuildSolids();
+
+    startCell = t.start ? { col: t.start.col, row: t.start.row } : null;
+    goalCell = t.goal ? { col: t.goal.col, row: t.goal.row } : null;
+    updateSpawn();
+
+    for (var pi = 0; pi < players.length; pi++) {
+      players[pi].hp = HP_MAX;
+      players[pi].invincible = 0;
+      players[pi].lastApex = 0;
+    }
+    comboQueue.length = 0;
+    winner = null;
+    resetHistory();
+    mapVerified = false;
+    respawn();
+    if (!silent) flash(note);
+    maybeShowGuide();
+    updateHud();
+  }
+
+  /* 出生点由「起点格」决定：脚踩在格子支撑面上（矮扁则踩在方块顶面）
+     双人：两人完全重合在起点格中心 sx+16，靠开局保护 + 4 帧倒计时避免一开局被挤开 */
+  function updateSpawn() {
+    if (!startCell) {
+      spawnSlots = [];
+      return;
+    }
+    var sx = startCell.col * CELL;
+    var base = markerBaseY(startCell);
+    var y = base - BODY_H;
+    var cx = sx + (CELL - BODY_W) / 2;
+
+    spawnPoint.x = cx;
+    spawnPoint.y = y;
+
+    if (gameMode === 'solo') {
+      spawnSlots = [{ x: cx, y: y }];
+      return;
+    }
+
+    spawnSlots = [{ x: cx, y: y }, { x: cx, y: y }];
+  }
+
+  /* 图标落脚面：矮扁方块顶面 / 格底 */
+  function markerBaseY(cell) {
+    var b = blockInCell(cell.col, cell.row);
+    if (b && b.size === 'flat') return blockRect(b).y;
+    return (cell.row + 1) * CELL;
+  }
+
+  /* ---------- 起点 / 终点 / 可达判定 ---------- */
+  /* 只有起点格和终点格本身是“标记格”：不能被机关/方块覆盖，且站在上面不吃尖刺伤害 */
+  function isMarkedCell(col, row) {
+    if (startCell && startCell.col === col && startCell.row === row) return true;
+    if (goalCell && goalCell.col === col && goalCell.row === row) return true;
+    return false;
+  }
+
+  function solidSurfaceBelow(col, row) {
+    if (row + 1 >= ROWS) return false;
+    if (grid[row + 1][col]) return true;
+    var b = blockInCell(col, row + 1);
+    if (!b) return false;
+    var r = blockRect(b);
+    return Math.abs(r.y - (row + 1) * CELL) < 0.5;   // 满格/窄条顶面在格线
+  }
+
+  /* 某格是否可以站人（落在实体顶面 / 移动平台行程内） */
+  function standable(col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+    if (grid[row][col]) return false;
+    var self = blockInCell(col, row);
+    if (self) return self.size === 'flat';           // 矮扁可以站上去
+    if (moverCovers(col, row)) return true;          // 移动平台行程覆盖到的格子
+    return solidSurfaceBelow(col, row);
+  }
+
+  /* ---------- 移动平台纳入 BFS：把平台的整条行程当成可站立区间 ---------- */
+  function moverStrips() {
+    var out = [];
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      out.push({
+        x: p.minX,
+        y: p.y,
+        w: (p.maxX - p.minX) + p.w,
+        h: p.h,
+        kind: 'mover',
+        platform: p
+      });
+    }
+    return out;
+  }
+
+  /* 该格是否被某条移动平台行程覆盖（平台顶面落在本格内且横向重叠） */
+  function moverCovers(col, row) {
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      var topRow = Math.floor(p.y / CELL);
+      if (topRow !== row) continue;
+      if (p.minX < (col + 1) * CELL && p.maxX + p.w > col * CELL) return true;
+    }
+    return false;
+  }
+
+  /* BFS 用的固体集合：静态方块 + 移动平台行程条带 */
+  function bfsSolids() {
+    return staticSolids.concat(moverStrips());
+  }
+
+  /* 整格实心（墙体 / 满格 / 窄条）：不能站、不能穿过 */
+  function cellSolid(col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return true;
+    if (grid[row][col]) return true;
+    var b = blockInCell(col, row);
+    return !!(b && b.size !== 'flat');
+  }
+
+  /* 该格是否有顶面尖刺（尖刺格可以走进去，但要吃 25 伤害） */
+  function spikeAt(col, row) {
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type !== 'spike') continue;
+      if (t.col === col && t.row === row && (t.mount || 'top') === 'top') return true;
+    }
+    return false;
+  }
+
+  /* ---------------- BFS：用真实物理常数模拟单人移动 ----------------
+     跳跃高度 / 助跑速度 / 重力 / 碰撞盒 与运行时完全一致；
+     每格尝试：平地走、从边缘助跑起跳、从边缘走落。
+     代价 = 沿途踩到的尖刺伤害（每个尖刺格 25），用 Dijkstra 求最小伤害路径。 */
+
+  var mapVersion = 0;
+  var reachCache = { v: -1, key: '', data: null };
+
+  /* 落点格：优先取身体中心所在列；若该列没有支撑，取身体重叠到的其它支撑列
+     （游戏里身体只要压到平台边缘就能站住，BFS 必须同样认） */
+  function landingCell(p) {
+    var row = Math.floor((p.y + BODY_H - 1) / CELL);
+    if (row < 0 || row >= ROWS) return null;
+
+    var cc = Math.floor((p.x + BODY_W / 2) / CELL);
+    var c0 = Math.floor(p.x / CELL);
+    var c1 = Math.floor((p.x + BODY_W - 1) / CELL);
+    var cands = [cc];
+    for (var c = c0; c <= c1; c++) if (c !== cc) cands.push(c);
+
+    for (var i = 0; i < cands.length; i++) {
+      var col = cands[i];
+      if (col < 0 || col >= COLS) continue;
+      if (standable(col, row)) return { col: col, row: row };
+    }
+    return null;
+  }
+
+  /* 落在某格的弹簧上？返回该弹簧（顶面弹簧、且玩家在下降/站立） */
+  function springInCell(col, row) {
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type !== 'spring') continue;
+      if (t.col === col && t.row === row) return t;
+    }
+    return null;
+  }
+
+  /* 用与运行时相同的物理步进模拟一次移动，返回落点格
+     弹簧按真实弹射逻辑继续模拟（反向弹射 + 减速 + 重力），弹回/弹空即本次移动失败 */
+  function simulateMove(sx, sy, dir, doJump) {
+    var p = {
+      x: sx, y: sy,
+      vx: dir * MOVE_SPEED,
+      vy: doJump ? -JUMP_V : 0,
+      onGround: true, riding: null,
+      launchTimer: 0, launchDir: 0
+    };
+    var solids = bfsSolids();     // 含移动平台行程条带
+    var hops = 0;
+
+    for (var i = 0; i < 300; i++) {
+      if (p.launchTimer > 0) {
+        var vMid = SPRING_DECEL * Math.max(0, p.launchTimer - (1 / 60) * 0.5);
+        p.vx = p.launchDir * vMid;
+        p.launchTimer = Math.max(0, p.launchTimer - 1 / 60);
+      } else {
+        p.vx = dir * MOVE_SPEED;     // 一直按住方向键：撞墙只夹位置不清零速度
+      }
+      var hres = resolveHoriz(p, p.x + p.vx * (1 / 60), solids);
+      p.x = hres.x;
+
+      var prevY = p.y;
+      var dy = p.vy * (1 / 60) + 0.5 * GRAVITY * (1 / 60) * (1 / 60);
+      var nextY = prevY + dy;
+      p.vy += GRAVITY * (1 / 60);
+      p.onGround = false;
+      p.riding = null;
+      p.y = resolveVert(p, prevY, nextY, solids);
+
+      if (p.onGround) {
+        var cell = landingCell(p);
+        if (!cell) return null;
+
+        // 踩到弹簧：按真实规则反向弹射，继续模拟
+        var spr = springInCell(cell.col, cell.row);
+        if (spr && hops < 2) {
+          hops++;
+          var d = Math.max(1, Math.min(3, spr.dist || 2)) * CELL;
+          if (spr.axis === 'up') {                 // 纵向弹簧：直接向上弹起
+            p.vy = -Math.sqrt(2 * GRAVITY * d);
+            p.onGround = false;
+            continue;
+          }
+          p.launchDir = dir >= 0 ? -1 : 1;
+          p.launchTimer = Math.sqrt(2 * SPRING_DECEL * d) / SPRING_DECEL;
+          p.onGround = false;
+          p.vy = 0;
+          continue;
+        }
+        return cell;
+      }
+      if (p.y > MAP + 200) return null;
+    }
+    return null;
+  }
+
+  /* 该格角色实际站立高度（矮扁在格中、移动平台在自身顶面、其余在格底） */
+  function standYAt(col, row) {
+    var b = blockInCell(col, row);
+    if (b && b.size === 'flat') return blockRect(b).y;
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      if (Math.floor(p.y / CELL) !== row) continue;
+      if (p.minX < (col + 1) * CELL && p.maxX + p.w > col * CELL) return p.y;
+    }
+    return (row + 1) * CELL;
+  }
+
+  function computeReach(from) {
+    var seen = {};
+    var cost = {};
+    if (!from || !standable(from.col, from.row)) return { seen: seen, cost: cost };
+
+    var startKey = from.col + ',' + from.row;
+    seen[startKey] = true;
+    cost[startKey] = 0;
+
+    var queue = [{ col: from.col, row: from.row, dmg: 0 }];
+
+    function tryPush(c, r, dmg) {
+      if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return;
+      if (!standable(c, r)) return;
+      var key = c + ',' + r;
+      var nd = dmg + (spikeAt(c, r) ? SPIKE_DAMAGE : 0);
+      if (cost[key] !== undefined && cost[key] <= nd) return;
+      cost[key] = nd;
+      seen[key] = true;
+      queue.push({ col: c, row: r, dmg: nd });
+    }
+
+    while (queue.length) {
+      queue.sort(function (a, b) { return a.dmg - b.dmg; });
+      var cur = queue.shift();
+      if (cur.dmg > cost[cur.col + ',' + cur.row]) continue;
+
+      var feetY = standYAt(cur.col, cur.row) - BODY_H;
+
+      for (var d = -1; d <= 1; d += 2) {
+        // ① 平地走一格
+        tryPush(cur.col + d, cur.row, cur.dmg);
+
+        // ② 助跑起跳：平台边缘 + 格子中心两个起跳点都试
+        var edgeX = d > 0 ? cur.col * CELL + (CELL - BODY_W) : cur.col * CELL;
+        var centerX = cur.col * CELL + (CELL - BODY_W) / 2;
+        var launchXs = [edgeX, centerX];
+        for (var li = 0; li < launchXs.length; li++) {
+          var landJump = simulateMove(launchXs[li], feetY, d, true);
+          if (landJump) tryPush(landJump.col, landJump.row, cur.dmg);
+        }
+
+        // ③ 从平台边缘走落（没有跳跃，直接掉下去）
+        if (!cellSolid(cur.col + d, cur.row)) {
+          var landFall = simulateMove(edgeX + d * 33, feetY, d, false);
+          if (landFall) tryPush(landFall.col, landFall.row, cur.dmg);
+        }
+      }
+    }
+    return { seen: seen, cost: cost };
+  }
+
+  /* 四向都被实心（地形/满格/窄条）包围 = 绝对死路 */
+  function cellEnclosed(col, row) {
+    return cellSolid(col, row - 1) && cellSolid(col, row + 1) &&
+           cellSolid(col - 1, row) && cellSolid(col + 1, row);
+  }
+
+  /* 难度下限 1：只用「平地走」能否从起点走到终点（能 → 无脑关，不合格） */
+  function walkOnlyReachesGoal() {
+    if (!startCell || !goalCell) return false;
+    if (!standable(startCell.col, startCell.row)) return false;
+    var gk = goalCell.col + ',' + goalCell.row;
+    var seen = {};
+    var q = [[startCell.col, startCell.row]];
+    seen[startCell.col + ',' + startCell.row] = true;
+    while (q.length) {
+      var cur = q.shift();
+      if (cur[0] + ',' + cur[1] === gk) return true;
+      for (var d = -1; d <= 1; d += 2) {
+        var c = cur[0] + d;
+        var r = cur[1];
+        var key = c + ',' + r;
+        if (seen[key]) continue;
+        if (!standable(c, r)) continue;
+        seen[key] = true;
+        q.push([c, r]);
+      }
+    }
+    return false;
+  }
+
+  /* 难度下限 2：到达终点至少要几次跳跃 / 下落（走 = 0，跳和落 = 1） */
+  function minMovesToGoal() {
+    if (!startCell || !goalCell) return -1;
+    if (!standable(startCell.col, startCell.row)) return -1;
+    var key0 = startCell.col + ',' + startCell.row;
+    var best = {};
+    best[key0] = 0;
+    var queue = [{ col: startCell.col, row: startCell.row, n: 0 }];
+    var gk = goalCell.col + ',' + goalCell.row;
+
+    while (queue.length) {
+      queue.sort(function (a, b) { return a.n - b.n; });
+      var cur = queue.shift();
+      if (cur.n > best[cur.col + ',' + cur.row]) continue;
+      if (cur.col + ',' + cur.row === gk) return cur.n;
+
+      var feetY = standYAt(cur.col, cur.row) - BODY_H;
+      for (var d = -1; d <= 1; d += 2) {
+        // 走一格：不增加跳跃计数
+        if (standable(cur.col + d, cur.row)) {
+          var k1 = (cur.col + d) + ',' + cur.row;
+          if (best[k1] === undefined || best[k1] > cur.n) {
+            best[k1] = cur.n;
+            queue.push({ col: cur.col + d, row: cur.row, n: cur.n });
+          }
+        }
+        var edgeX = d > 0 ? cur.col * CELL + (CELL - BODY_W) : cur.col * CELL;
+        var centerX = cur.col * CELL + (CELL - BODY_W) / 2;
+        var xs = [edgeX, centerX];
+        for (var li = 0; li < xs.length; li++) {
+          var lj = simulateMove(xs[li], feetY, d, true);
+          if (lj) {
+            var k2 = lj.col + ',' + lj.row;
+            if (best[k2] === undefined || best[k2] > cur.n + 1) {
+              best[k2] = cur.n + 1;
+              queue.push({ col: lj.col, row: lj.row, n: cur.n + 1 });
+            }
+          }
+        }
+        if (!cellSolid(cur.col + d, cur.row)) {
+          var lf = simulateMove(edgeX + d * 33, feetY, d, false);
+          if (lf) {
+            var k3 = lf.col + ',' + lf.row;
+            if (best[k3] === undefined || best[k3] > cur.n + 1) {
+              best[k3] = cur.n + 1;
+              queue.push({ col: lf.col, row: lf.row, n: cur.n + 1 });
+            }
+          }
+        }
+      }
+    }
+    return -1;
+  }
+
+  function reachableFrom(from) {
+    if (!from) return { seen: {}, cost: {} };
+    var key = from.col + ',' + from.row;
+    if (reachCache.v === mapVersion && reachCache.key === key) return reachCache.data;
+    var data = computeReach(from);
+    reachCache = { v: mapVersion, key: key, data: data };
+    return data;
+  }
+
+  /* 兼容旧调用：只要可达格集合 */
+  function reachableSet(from) {
+    return reachableFrom(from).seen;
+  }
+
+  /* 终点判定（与游戏内一致）：脚底站在终点格即算到达；
+     如果终点格本身站不住（旗帜悬空），站在它正下方的支撑格、身体能碰到旗帜也算 */
+  function goalReachInfo() {
+    if (!startCell || !goalCell) return null;
+    var info = reachableFrom(startCell);
+    var gk = goalCell.col + ',' + goalCell.row;
+    if (info.seen[gk]) return { key: gk, cost: info.cost[gk] || 0 };
+
+    if (!standable(goalCell.col, goalCell.row)) {
+      var bk = goalCell.col + ',' + (goalCell.row + 1);
+      if (info.seen[bk]) return { key: bk, cost: info.cost[bk] || 0 };
+    }
+    return null;
+  }
+
+  /* 官图自检：路线/机关有效性/碰撞兜底。返回问题列表（空数组 = 通过） */
+  function auditLevel() {
+    var issues = [];
+    if (!startCell) issues.push('缺少起点');
+    else if (!standable(startCell.col, startCell.row)) issues.push('出生点悬空：起点脚下没有可站立平台');
+    if (!goalCell) issues.push('缺少终点');
+    if (!startCell || !goalCell) return issues;
+
+    var info = reachableFrom(startCell);
+    var seen = info.seen;
+
+    function nearReach(c, r) {
+      for (var dr = -2; dr <= 2; dr++) {
+        for (var dc = -2; dc <= 2; dc++) {
+          if (seen[(c + dc) + ',' + (r + dr)]) return true;
+        }
+      }
+      return false;
+    }
+
+    for (var i = 0; i < traps.length; i++) {
+      var tr = traps[i];
+
+      if (tr.type === 'mover') {
+        // 移动平台：行程必须够长、路径不能有遮挡
+        if (moverFreeSpace(tr.col, tr.row, tr.dir, tr.range).travel < 2) {
+          issues.push('移动平台被遮挡: @' + tr.col + ',' + tr.row);
+        }
+        var mTop = standable(tr.col, tr.row) || nearReach(tr.col, tr.row);
+        if (!mTop) issues.push('移动平台孤立: @' + tr.col + ',' + tr.row);
+        continue;
+      }
+
+      var tb = trapBox(tr);
+
+      // 机关不能嵌进整格方块
+      var b = blockInCell(tr.col, tr.row);
+      if (b && b.size !== 'flat' && overlap(tb, blockRect(b))) {
+        issues.push('机关嵌进方块: ' + tr.type + '@' + tr.col + ',' + tr.row);
+      }
+
+      // 弹簧必须踩得到（所在格可站立）
+      if (tr.type === 'spring' && !standable(tr.col, tr.row)) {
+        issues.push('弹簧踩不到: @' + tr.col + ',' + tr.row);
+      }
+
+      // 机关必须在路线附近（不能丢在虚空里）
+      if (!nearReach(tr.col, tr.row)) {
+        issues.push('机关碰不到: ' + tr.type + '@' + tr.col + ',' + tr.row);
+      }
+    }
+
+    if (!canReachGoal()) issues.push('BFS 不可达' + (goalReachDamage() >= HP_MAX ? '（伤害超限）' : ''));
+    else {
+      // 难度下限：不能纯平走直达；至少 3 次跳跃/下落
+      if (walkOnlyReachesGoal()) issues.push('难度不合格：可以只靠横向走路到达终点');
+      var moves = minMovesToGoal();
+      if (moves >= 0 && moves < 3) issues.push('难度不合格：到终点只需 ' + moves + ' 次跳跃');
+    }
+    return issues;
+  }
+
+  /* 到达终点所需的最小陷阱伤害；不可达返回 Infinity */
+  function goalReachDamage() {
+    var info = goalReachInfo();
+    return info ? info.cost : Infinity;
+  }
+
+  /* 双重校验：可达 且 最小伤害 < 初始血量 */
+  function canReachGoal() {
+    return goalReachDamage() < HP_MAX;
+  }
+
+  function missingCount() {
+    var n = 0;
+    if (!startCell) n++;
+    if (!goalCell) n++;
+    return n;
+  }
+
+  function statusText() {
+    if (!startCell && !goalCell) return '还差起点和终点';
+    if (!startCell) return '还差起点';
+    if (!goalCell) return '还差终点';
+    if (isEditLocked()) return '可试玩';          // 官图是预设关卡，不显示验证状态
+    return mapVerified ? '已验证可玩' : '待验证';
+  }
+
+  /* 状态条下方的一行说明：三选一 */
+  function reachNoteText() {
+    if (!startCell || !goalCell) return '—';
+    var dmg = goalReachDamage();
+    if (dmg === Infinity) return '无连通起点到终点的可行路径';
+    if (dmg >= HP_MAX) return '有路，但所有单人路线总伤害≥' + HP_MAX + '，无法存活通关';
+    return '存在单人可行路线，最低伤害：' + dmg;
+  }
+
+  /* 机关数据 → 平台运行时：起点 = 放置格，方向 + 格数决定理论终点 */
+  function moverPlan(t) {
+    var start = t.col * CELL;
+    var sign = 1;
+    var cells = 1;
+
+    if (t.dir === 'left') sign = -1;
+    else if (t.dir === 'right') sign = 1;
+    else if (t.to !== undefined) { sign = t.to >= t.col ? 1 : -1; cells = Math.abs(t.to - t.col); }
+
+    if (typeof t.range === 'number') cells = t.range;
+
+    var end = start + sign * cells * CELL;
+    end = Math.max(0, Math.min(MAP - CELL, end));
+    return { start: start, end: end, sign: sign, cells: cells };
+  }
+
+  function buildPlatforms() {
+    platforms = [];
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type !== 'mover') continue;
+      var plan = moverPlan(t);
+      platforms.push({
+        x: plan.start,
+        y: t.row * CELL + (CELL - MOVE_H),
+        w: (t.w || 1) * CELL,
+        h: MOVE_H,
+        minX: Math.min(plan.start, plan.end),
+        maxX: Math.max(plan.start, plan.end),
+        dir: plan.sign,
+        speed: t.speed || 50,
+        dx: 0
+      });
+    }
+    mapVersion++;                       // 机关（尖刺/弹簧/平台）变了，可达缓存作废
+  }
+
+  /* 把某个玩家放到自己的出生槽（§5.2），并给 1 帧出生保护（§5.3） */
+  function respawnPlayer(p, protect) {
+    var slot = spawnSlots[p.id];
+    if (slot) {
+      p.x = slot.x;
+      p.y = slot.y;
+    }
+    p.vx = 0;
+    p.vy = 0;
+    p.onGround = true;
+    p.facing = 1;
+    p.jumpTrack.active = false;
+    p.jumpTrack.apex = 0;
+    p.stepVisual = 0;
+    p.stepUsed = false;
+    p.riding = null;
+    p.launchTimer = 0;
+    p.launchHit = false;
+    p.stun = 0;
+    p.jumpQueued = false;
+    p.jumpBuffer = 0;
+    p.coyote = COYOTE_TIME;
+    p.moveDir = 0;
+    p.spawnProtect = protect ? 1 : 0;
+  }
+
+  /* 中途复位（Q / 0 / 死亡复活 / 掉出地图）：一律不给出生保护 */
+  function resetPlayer(id, reason) {
+    var p = players[id];
+    if (!p) return false;
+    if (gameMode === 'solo' && id !== 0) return false;
+
+    respawnPlayer(p, false);
+    p.hp = HP_MAX;
+    p.invincible = 0;
+
+    // 只清掉“以该玩家为受害者”的连坐，保留他作为起因、目标为另一人的条目
+    for (var i = comboQueue.length - 1; i >= 0; i--) {
+      if (comboQueue[i].victim === p) comboQueue.splice(i, 1);
+    }
+    winner = null;
+
+    if (reason) flash(reason);
+    updateHud();
+    return true;
+  }
+
+  /* 对局首次出生：双人同格并排；保护等玩家第一次按操作键时再启动 */
+  /* 整局重开：双方回出生点、机关全部复位、移动平台回到起点（R 键用） */
+  function restartRound() {
+    comboQueue.length = 0;
+    for (var i = 0; i < traps.length; i++) traps[i].cool = 0;
+    buildPlatforms();                 // 移动平台回到初始位置
+    winner = null;
+    respawn();
+    updateHud();
+    flash(gameMode === 'duo' ? '已重开本局（双方回出生点）' : '已重开本局（P1 回出生点）');
+  }
+
+  function respawn() {
+    var n = gameMode === 'solo' ? 1 : players.length;
+    var protect = gameMode === 'duo';
+
+    for (var i = 0; i < n; i++) {
+      players[i].hp = HP_MAX;
+      players[i].invincible = 0;
+      respawnPlayer(players[i], protect);
+    }
+    isFirstSpawnRound = protect;
+    spawnSafeFrameCount = 0;
+    winner = null;
+
+    if (protect && startCell) {
+      var sx = startCell.col * CELL;
+      var sy = markerBaseY(startCell);
+      var inCell0 = players[0].x >= sx && players[0].x + BODY_W <= sx + CELL;
+      var inCell1 = players[1].x >= sx && players[1].x + BODY_W <= sx + CELL;
+      console.log('[spawn] 起点格子左上角 sx,sy =', sx, sy);
+      console.log('[spawn] P1出生 x,y =', players[0].x, players[0].y);
+      console.log('[spawn] P2出生 x,y =', players[1].x, players[1].y);
+      console.log('[spawn] 同格=' + (inCell0 && inCell1) + ' 同高=' + (players[0].y === players[1].y));
+    }
+  }
+
+  /* ---------- 输入 ---------- */
+  var JUMP_KEYS = {
+    w: 0, ' ': 0, spacebar: 0,          // P1
+    arrowup: 1                          // P2
+  };
+  /* 会触发“开局保护倒计时”的操作键：P1 W/A/S/D + 空格，P2 方向键 */
+  var GAMEPLAY_KEYS = {
+    w: 1, a: 1, s: 1, d: 1, ' ': 1, spacebar: 1,
+    arrowup: 1, arrowdown: 1, arrowleft: 1, arrowright: 1
+  };
+
+  function onKeyDown(e) {
+    var k = e.key ? e.key.toLowerCase() : '';
+
+    // 场景A 编辑器内游玩：不拦截，R/Q/0 等按原逻辑处理
+    // 场景B 分享只读游玩：放行 移动/跳跃/R 重开/Q 复位P1/0 复位P2
+    //        仍然禁用 E(编辑) T(模板) 1-9(切图/切工具) B(调试盒)，防止改动他人地图
+    if (shareMode) {
+      var SHARE_KEYS = ['a', 'd', 'w', 'arrowleft', 'arrowright', 'arrowup', ' ', 'r', 'q', '0'];
+      if (SHARE_KEYS.indexOf(k) < 0) { e.preventDefault(); return; }
+    }
+
+    if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'y')) {
+      e.preventDefault();
+      if (editorMode && !isEditLocked()) {
+        if (k === 'z') undoEdit(); else redoEdit();
+      }
+      return;
+    }
+
+    if (k === 'e') {
+      e.preventDefault();
+      if (isEditLocked()) { flash('官图关卡不可编辑，仅可游玩'); return; }
+      editorMode = !editorMode;
+      if (editorMode) {
+        if (gameMode !== 'solo') setMode('solo');     // 编辑默认单人
+        maybeShowStarter();
+        winner = null;
+        paletteCollapsed = COLS === 6;   // 6×6 编辑默认收起面板
+        resetPlayersForEditor();
+        showEditHint();
+      }
+      if (!editorMode) {
+        goalFail = null;
+        goalTint = false;
+      }
+      clearKeys();
+      flash(editorMode ? '进入编辑模式' : '退出编辑模式');
+      updateHud();
+      return;
+    }
+    if (k === 'r') {
+      e.preventDefault();
+      if (editorMode) return;            // 编辑器内忽略 R
+      restartRound();                    // 整局重开：两人回出生点 + 机关复位
+      return;
+    }
+    if (k === 't') {
+      e.preventDefault();
+      if (mapMode === 'official') {
+        var olist = officialList(COLS);
+        if (olist.length) loadOfficial(currentOfficial + 1);
+        return;
+      }
+      if (mapMode !== 'semi') {           // 空白画布不切换模板，避免把基底塞进空白图
+        flash('空白画布没有模板，请先在「半官图」里选基底');
+        return;
+      }
+      var tlist = sizeTemplates(COLS);
+      var tpos = templateOrderInSize();
+      if (tlist.length) loadTemplate(tlist[(tpos + 1) % tlist.length]);
+      return;
+    }
+
+    if (k >= '1' && k <= '9') {
+      e.preventDefault();
+      if (editorMode) {
+        activeTool = Math.min(TOOLS.length - 1, parseInt(k, 10) - 1);
+        goalTint = isGoalToolActive();
+        flash('已选：' + TOOLS[activeTool].label);
+        updateHud();
+      } else if (mapMode === 'official') {
+        var okl = officialList(COLS);
+        var opick = parseInt(k, 10) - 1;
+        if (opick >= 0 && opick < okl.length) loadOfficial(opick);
+      } else if (mapMode === 'semi') {
+        var klist = sizeTemplates(COLS);
+        var kpick = parseInt(k, 10) - 1;
+        if (kpick >= 0 && kpick < klist.length) loadTemplate(klist[kpick]);
+      }
+      return;
+    }
+
+    if (k === 'b') {
+      e.preventDefault();
+      showBoxes = !showBoxes;
+      flash('调试盒 ' + (showBoxes ? '开' : '关'));
+      return;
+    }
+
+    /* §5.4：Q 只复位 P1，0 只复位 P2（单人/编辑器内忽略） */
+    if (k === 'q') {
+      e.preventDefault();
+      if (editorMode || gameMode !== 'duo') return;
+      resetPlayer(0, '已复位 P1');
+      return;
+    }
+    if (k === '0') {
+      e.preventDefault();
+      if (editorMode || gameMode !== 'duo') return;
+      resetPlayer(1, '已复位 P2');
+      return;
+    }
+
+    /* §5.4：编辑器切换挂载方位改用 Z */
+    if (k === 'z') {
+      e.preventDefault();
+      if (!editorMode) return;
+      var qt = TOOLS[activeTool] || TOOLS[0];
+      if (qt.kind === 'trap' && qt.type === 'mover') {
+        activeMoverDir = activeMoverDir === 'left' ? 'right' : 'left';
+        flash('移动方向：' + (activeMoverDir === 'left' ? '向左' : '向右'));
+      } else {
+        var qi = 0;
+        for (var mi2 = 0; mi2 < MOUNTS.length; mi2++) {
+          if (MOUNTS[mi2][0] === activeMount) qi = mi2;
+        }
+        qi = (qi + 1) % MOUNTS.length;
+        activeMount = MOUNTS[qi][0];
+        flash('挂载方位：' + MOUNTS[qi][1]);
+      }
+      updateHud();
+      return;
+    }
+    if (k === 'f') {
+      e.preventDefault();
+      if (!editorMode) return;
+      var ft = TOOLS[activeTool] || TOOLS[0];
+      if (ft.kind === 'trap' && ft.type === 'mover') {
+        activeMoverRange = activeMoverRange === 1 ? 2 : 1;
+        flash('平台移动范围：' + activeMoverRange + ' 格');
+      } else {
+        activeSpringDist = activeSpringDist === 1 ? 2 : 1;
+        flash('弹簧弹射：' + activeSpringDist + ' 格');
+      }
+      updateHud();
+      return;
+    }
+
+    // 双人开局保护：本局第一次操作按键按下时启动 4 帧倒计时（只触发一次，长按不会重置）
+    if (isFirstSpawnRound && gameMode === 'duo' && !editorMode && !winner &&
+        spawnSafeFrameCount === 0 && GAMEPLAY_KEYS[k]) {
+      spawnSafeFrameCount = 4;
+      console.log('[spawn] 首次操作按键 → spawnSafeFrameCount = 4');
+    }
+
+    // 跳跃（边沿触发）
+    if (JUMP_KEYS[k] !== undefined) {
+      e.preventDefault();
+      if (!e.repeat && !editorMode) players[JUMP_KEYS[k]].jumpQueued = true;
+      return;
+    }
+
+    // 移动键
+    if (k === 'a' || k === 'd' || k === 'arrowleft' || k === 'arrowright') {
+      e.preventDefault();
+      if (editorMode) return;
+      held.add(k);
+      elKeys.textContent = heldText();
+    }
+  }
+
+  function onKeyUp(e) {
+    var k = e.key ? e.key.toLowerCase() : '';
+    if (JUMP_KEYS[k] !== undefined) { e.preventDefault(); return; }
+    if (k === 'a' || k === 'd' || k === 'arrowleft' || k === 'arrowright') {
+      e.preventDefault();
+      held.delete(k);
+      elKeys.textContent = heldText();
+    }
+  }
+
+  function clearKeys() {
+    held.clear();
+    for (var i = 0; i < players.length; i++) players[i].jumpQueued = false;
+    elKeys.textContent = heldText();
+  }
+
+  function guideVisible() {
+    return !!((elGuideModal && !elGuideModal.hidden) ||
+              (elShareRules && !elShareRules.hidden));
+  }
+  window.addEventListener('keydown', function (e) {
+    if (guideVisible()) { e.preventDefault(); return; }   // 引导打开时不吃任何输入
+    onKeyDown(e);
+  });
+  window.addEventListener('keyup', function (e) {
+    if (guideVisible()) { e.preventDefault(); return; }
+    onKeyUp(e);
+  });
+  window.addEventListener('blur', clearKeys);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) clearKeys();
+  });
+
+  /* 面板上的「模式 / 画布尺寸」按钮 */
+  function segButton(ev) {
+    var el = ev && ev.target;
+    if (!el || typeof el.closest !== 'function') return null;
+    return el.closest('button');
+  }
+
+  if (elModeSeg && typeof elModeSeg.addEventListener === 'function') {
+    elModeSeg.addEventListener('click', function (ev) {
+      var b = segButton(ev);
+      if (!b) return;
+      setMode(b.getAttribute('data-mode'));
+    });
+  }
+  if (elSizeSeg && typeof elSizeSeg.addEventListener === 'function') {
+    elSizeSeg.addEventListener('click', function (ev) {
+      var b = segButton(ev);
+      if (!b) return;
+      var n = parseInt(b.getAttribute('data-size'), 10);
+      if (n === COLS) return;
+      pendingSize = n;
+      if (elSizeConfirm) elSizeConfirm.hidden = false;
+    });
+  }
+
+  var elConfirmYes = document.getElementById('size-confirm-yes');
+  var elConfirmNo = document.getElementById('size-confirm-no');
+  if (elConfirmYes && typeof elConfirmYes.addEventListener === 'function') {
+    elConfirmYes.addEventListener('click', function () {
+      var n = pendingSize;
+      pendingSize = 0;
+      if (elSizeConfirm) elSizeConfirm.hidden = true;
+      if (n) applyCanvasSize(n);
+    });
+  }
+  if (elConfirmNo && typeof elConfirmNo.addEventListener === 'function') {
+    elConfirmNo.addEventListener('click', function () {
+      pendingSize = 0;
+      if (elSizeConfirm) elSizeConfirm.hidden = true;
+    });
+  }
+  if (elMapModeSeg && typeof elMapModeSeg.addEventListener === 'function') {
+    elMapModeSeg.addEventListener('click', function (ev) {
+      var b = segButton(ev);
+      if (!b) return;
+      setMapMode(b.getAttribute('data-mapmode'));
+    });
+  }
+  if (elStarterModal && typeof elStarterModal.addEventListener === 'function') {
+    var sbtns = elStarterModal.querySelectorAll('.starter');
+    for (var si = 0; si < sbtns.length; si++) {
+      (function (btn) {
+        btn.addEventListener('click', function () { applyStarter(btn.getAttribute('data-kind')); });
+      })(sbtns[si]);
+    }
+  }
+
+  if (elStartCardOk && typeof elStartCardOk.addEventListener === 'function') {
+    elStartCardOk.addEventListener('click', function () {
+      if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
+      editorUnlocked = true;
+      if (elStartCard) elStartCard.hidden = true;
+      syncSegButtons();
+      updateHud();
+      flash('完整编辑器已解锁');
+    });
+  }
+  if (elStartCardOpen && typeof elStartCardOpen.addEventListener === 'function') {
+    elStartCardOpen.addEventListener('click', function (e) {
+      e.preventDefault();
+      startCardDismissed = false;
+      syncStartCard();
+    });
+  }
+
+  if (elRulesStart && typeof elRulesStart.addEventListener === 'function') {
+    elRulesStart.addEventListener('click', closeShareRules);
+  }
+  if (elRulesBtn && typeof elRulesBtn.addEventListener === 'function') {
+    elRulesBtn.addEventListener('click', function () { showShareRules(); });
+  }
+
+  if (elGuideStart && typeof elGuideStart.addEventListener === 'function') {
+    elGuideStart.addEventListener('click', closeGuide);
+  }
+
+  if (elBtnShare && typeof elBtnShare.addEventListener === 'function') {
+    elBtnShare.addEventListener('click', function () {
+      if (!mapVerified) { if (elShareModal) elShareModal.hidden = false; return; }
+      var url = buildShareUrl();
+      if (elShareUrl) elShareUrl.value = url;
+      if (elShareResult) elShareResult.hidden = false;
+    });
+  }
+  if (elModalTest && typeof elModalTest.addEventListener === 'function') {
+    elModalTest.addEventListener('click', quickTestPlay);
+  }
+  if (elModalCancel && typeof elModalCancel.addEventListener === 'function') {
+    elModalCancel.addEventListener('click', function () { if (elShareModal) elShareModal.hidden = true; });
+  }
+  if (elShareCopy && typeof elShareCopy.addEventListener === 'function') {
+    elShareCopy.addEventListener('click', function () {
+      if (!elShareUrl) return;
+      elShareUrl.select();
+      try { document.execCommand('copy'); flash('链接已复制'); } catch (e) { flash('请手动复制链接'); }
+    });
+  }
+  if (elShareClose && typeof elShareClose.addEventListener === 'function') {
+    elShareClose.addEventListener('click', function () { if (elShareResult) elShareResult.hidden = true; });
+  }
+  if (elBtnRemix && typeof elBtnRemix.addEventListener === 'function') {
+    elBtnRemix.addEventListener('click', exitShareToEditor);
+  }
+
+  if (elBtnUndo && typeof elBtnUndo.addEventListener === 'function') {
+    elBtnUndo.addEventListener('click', function () { undoEdit(); });
+  }
+  if (elBtnRedo && typeof elBtnRedo.addEventListener === 'function') {
+    elBtnRedo.addEventListener('click', function () { redoEdit(); });
+  }
+  if (elBtnClear && typeof elBtnClear.addEventListener === 'function') {
+    elBtnClear.addEventListener('click', function () {
+      if (isEditLocked()) return;
+      if (elClearConfirm) elClearConfirm.hidden = false;
+    });
+  }
+  if (elClearYes && typeof elClearYes.addEventListener === 'function') {
+    elClearYes.addEventListener('click', function () {
+      if (elClearConfirm) elClearConfirm.hidden = true;
+      clearCanvas();
+    });
+  }
+  if (elClearNo && typeof elClearNo.addEventListener === 'function') {
+    elClearNo.addEventListener('click', function () {
+      if (elClearConfirm) elClearConfirm.hidden = true;
+    });
+  }
+
+  if (elReachChk && typeof elReachChk.addEventListener === 'function') {
+    showReachPath = elReachChk.checked !== false;
+    elReachChk.addEventListener('change', function () {
+      showReachPath = !!elReachChk.checked;
+    });
+  }
+
+  function flash(text) {
+    elFlash.textContent = text;
+    elFlash.classList.add('on');
+    flashTimer = 1.5;
+  }
+
+  /* ---------- 编辑器 ---------- */
+  var BUDGET_DEFAULT = 15;         // 机关预算（可调 10–20）
+  var BUDGET_MIN = 10;
+  var BUDGET_MAX = 20;
+  var budgetMax = BUDGET_DEFAULT;
+
+  var PAL = { x: 12, y: 48, colW: 82, rowH: 30, gap: 5 };
+  var paletteCollapsed = false;     // 左侧机关面板是否收起
+  var pendingSize = 0;
+  var mapVerified = false;          // 创作者是否已亲自通关认证
+  var draftCache = {};              // 空白画布草稿缓存：b6 / b10
+  var semiTemplateCache = null;     // 半官图上次使用的基底序号
+  var helpOpen = false;             // 左侧面板「操作说明」展开状态
+  var pendingSize = 0;              // 待确认的画布尺寸
+  var shareMode = false;            // 分享链接的只读游玩态
+  var shareMeta = null;             // 分享数据里的 meta
+  var mapVerifiedAt = 0;            // 通关时间戳
+  var officialCleared = {};         // 官图通关记录（与当前地图的通关标记分开存）
+  var IS_MOBILE_UA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|HarmonyOS|MicroMessenger/i.test(navigator.userAgent || '');
+  var MOUNTS = [['top', '顶面'], ['left', '左侧'], ['right', '右侧']];
+  var drag = null;
+  var hover = { col: -1, row: -1 };
+  var deny = { col: -1, row: -1, t: 0 };
+  var goalFail = null;      // 终点校验失败时的可视化（仅编辑模式）
+  var goalTint = false;     // 选中/悬停终点工具时实时显示可达染色，放置后自动消失
+  var showReachPath = true; // 面板「显示可达路径」开关
+
+  function isGoalToolActive() {
+    var t = TOOLS[activeTool] || TOOLS[0];
+    return t.kind === 'marker' && t.marker === 'goal';
+  }
+
+  function paletteRect(i) {
+    var c = i % 2;
+    var r = Math.floor(i / 2);
+    return {
+      x: PAL.x + c * (PAL.colW + PAL.gap),
+      y: PAL.y + r * (PAL.rowH + PAL.gap),
+      w: PAL.colW,
+      h: PAL.rowH
+    };
+  }
+
+  /* 面板收起 / 展开按钮 */
+  function palToggleRect() {
+    if (paletteCollapsed) {
+      return { x: PAL.x - 6, y: 6, w: 94, h: 24 };
+    }
+    var box = editorBox();
+    return { x: box.x + box.w - 50, y: box.y + box.h - 26, w: 42, h: 18 };
+  }
+
+  function paletteIndexAt(sx, sy) {
+    if (paletteCollapsed) return -1;
+    for (var i = 0; i < TOOLS.length; i++) {
+      var r = paletteRect(i);
+      if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) return i;
+    }
+    return -1;
+  }
+
+  function mountChipRect(i) {
+    var rows = Math.ceil(TOOLS.length / 2);
+    return { x: 46 + i * 47, y: PAL.y + rows * (PAL.rowH + PAL.gap) + 8, w: 45, h: 20 };
+  }
+
+  function distChipRect(i) {
+    var rows = Math.ceil(TOOLS.length / 2);
+    return { x: 46 + i * 62, y: PAL.y + rows * (PAL.rowH + PAL.gap) + 33, w: 58, h: 20 };
+  }
+
+  function mountChipAt(sx, sy) {
+    if (paletteCollapsed) return -1;
+    for (var i = 0; i < MOUNTS.length; i++) {
+      var r = mountChipRect(i);
+      if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) return i;
+    }
+    return -1;
+  }
+
+  function distChipAt(sx, sy) {
+    if (paletteCollapsed) return -1;
+    for (var i = 0; i < 2; i++) {
+      var r = distChipRect(i);
+      if (sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h) return i;
+    }
+    return -1;
+  }
+
+  function canvasPoint(e) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (MAP / rect.width),
+      y: (e.clientY - rect.top) * (MAP / rect.height)
+    };
+  }
+
+  function trapCount() { return traps.length; }
+
+  function trapIndexAt(col, row) {
+    for (var i = 0; i < traps.length; i++) {
+      if (traps[i].col === col && traps[i].row === row) return i;
+    }
+    return -1;
+  }
+
+  function blockIndexAt(col, row) {
+    for (var i = 0; i < blocks.length; i++) {
+      if (blocks[i].col === col && blocks[i].row === row) return i;
+    }
+    return -1;
+  }
+
+  function objectAt(col, row) {
+    var ti = trapIndexAt(col, row);
+    if (ti >= 0) return { kind: 'trap', index: ti };
+    var bi = blockIndexAt(col, row);
+    if (bi >= 0) return { kind: 'block', index: bi };
+    return null;
+  }
+
+  function tileAt(col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+    return grid[row][col] === true;
+  }
+
+  function boxHitsPlayer(rect) {
+    // 没有起点 = 还没有角色出生，不占用任何格子
+    if (!startCell) return false;
+    return rect.x < player.x + BODY_W && rect.x + rect.w > player.x &&
+           rect.y < player.y + BODY_H && rect.y + rect.h > player.y;
+  }
+
+  function denyAt(col, row) {
+    deny.col = col;
+    deny.row = row;
+    deny.t = 0.5;
+    return false;
+  }
+
+  function syncTemplate() {
+    if (currentTemplate < 0) { mapVersion++; return; }   // 空白画布不属于任何模板
+    var t = TEMPLATES[currentTemplate];
+    t.traps = traps.map(function (src) {
+      var copy = {};
+      for (var k in src) if (k !== 'cool') copy[k] = src[k];
+      return copy;
+    });
+    t.blocks = blocks.map(function (b) {
+      return { col: b.col, row: b.row, size: b.size };
+    });
+    t.start = startCell ? { col: startCell.col, row: startCell.row } : null;
+    t.goal = goalCell ? { col: goalCell.col, row: goalCell.row } : null;
+    mapVersion++;                       // 任何编辑都让可达缓存作废
+  }
+
+  /* 起点/终点的不可覆盖判定改由 isMarkedCell 统一处理 */
+
+  function placeMarker(kind, col, row) {
+    if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) { flash(MSG.bounds); return false; }
+    // 起点/终点那一格不允许再覆盖东西（另一名标记也不行）
+    if (kind === 'start' && goalCell && goalCell.col === col && goalCell.row === row) {
+      flash('这一格是终点，不能放起点');
+      return false;
+    }
+
+    /* 起点/终点只是图标，绝不改动下方方块：
+       整格高的方块（满格 64×64 / 窄条 32×64）→ 图标落到上方一格；
+       半格高的矮扁（64×32）→ 图标同格，贴在方块顶面。 */
+    var autoLifted = false;
+    var clickedBlock = blockInCell(col, row);
+    if (clickedBlock && clickedBlock.size !== 'flat') {
+      row = row - 1;
+      autoLifted = true;
+      if (row < 0) {
+        flash('方块上方没有空间');
+        return false;
+      }
+      if (tileAt(col, row) || blockInCell(col, row) || trapIndexAt(col, row) >= 0) {
+        flash('方块上方一格被占用');
+        return false;
+      }
+    }
+
+    if (tileAt(col, row) || trapIndexAt(col, row) >= 0) {
+      flash('这一格已经有东西了');
+      return false;
+    }
+    if (blockIndexAt(col, row) >= 0 && blockInCell(col, row).size !== 'flat') {
+      flash('这一格已经有东西了');
+      return false;
+    }
+    if (!standable(col, row)) {
+      flash('这里站不了人，不能放' + (kind === 'start' ? '起点' : '终点'));
+      return false;
+    }
+
+    if (kind === 'start') {
+      if (goalCell && goalCell.col === col && goalCell.row === row) {
+        flash('起点不能和终点重合');
+        return false;
+      }
+      pushUndo(editSnapshot());
+      markLayoutChanged();
+      startCell = { col: col, row: row };
+      cardTicks.start = true;          // 只认用户自己放的起点
+      updateSpawn();
+      respawn();                       // 放下起点后角色才出生
+      flash('起点已设置');
+      updateHud();
+    } else {
+      if (startCell && startCell.col === col && startCell.row === row) {
+        flash('终点不能和起点重合');
+        return false;
+      }
+      if (!startCell) {
+        flash('请先设置起点');
+        return false;
+      }
+      var info = reachableFrom(startCell);
+      var gkey = col + ',' + row;
+
+      // 只拦截"四向都被实心包死"的绝对死路；其余按有站立面即放行
+      if (cellEnclosed(col, row)) {
+        goalFail = { col: col, row: row, reach: {}, t: 5 };
+        flash('该位置四周被封死，无法到达');
+        return false;
+      }
+      if (!info.seen[gkey]) {
+        // 允许放置，但顶部标红提醒当前还没有可行路线
+        pushUndo(editSnapshot());
+        markLayoutChanged();
+        goalCell = { col: col, row: row };
+      cardTicks.goal = true;           // 自 己 放 的 终 点
+        cardTicks.goal = true;         // 只认用户自己放的终点
+        goalFail = null;
+        goalTint = false;
+        showReachWarn();
+        flash('算法判定暂不可达，可进入游玩实测通关认证');
+        updateHud();
+        return true;
+      }
+      if (false) {
+        goalFail = {
+          col: col,
+          row: row,
+          reach: info.seen,
+          t: 5
+        };
+        flash(MSG.unreachable);
+        return false;
+      }
+      if ((info.cost[gkey] || 0) >= HP_MAX) {
+        goalFail = {
+          col: col,
+          row: row,
+          reach: info.seen,
+          t: 5
+        };
+        flash('该位置沿途陷阱伤害 ≥ ' + HP_MAX + '，单人无法活着到达');
+        return false;
+      }
+      pushUndo(editSnapshot());
+      markLayoutChanged();
+      goalCell = { col: col, row: row };
+      cardTicks.goal = true;                  // 自己放的终点才算
+      goalFail = null;
+      goalTint = false;                       // 放置完成 → 染色自动消失
+      flash(autoLifted ? '终点已放在方块上方一格' : '终点已设置');
+      updateHud();
+    }
+
+    syncTemplate();
+    updateHud();
+    return true;
+  }
+
+  /* 计算机关落位（不改状态）：返回 {col,row,rect} 或 null */
+  function previewTrap(type, col, row, mount) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    mount = mount || 'top';
+    if (tileAt(col, row)) return null;                  // 模板自带的平台格已锁定
+
+    var b = blockInCell(col, row);
+
+    if (mount === 'left' || mount === 'right') {
+      if (!b) return null;
+      if (b.size !== 'bar' && b.size !== 'full') return null;   // 方形/窄条支持侧面，矮扁不支持
+      var side = sideRectFor(col, row, mount, type);
+      if (side.x < 0 || side.x + side.w > MAP) return null;
+      return { col: col, row: row, rect: side };
+    }
+
+    var targetRow = row;
+    if (b && b.size !== 'flat') {                       // 满格/窄条：机关落在其上方一格
+      targetRow = row - 1;
+      if (targetRow < 0) return null;
+      if (blockInCell(col, targetRow)) return null;
+      b = null;
+    }
+
+    var support;
+    if (b && b.size === 'flat') {
+      support = blockRect(b).y;                         // 矮扁方块顶面
+    } else {
+      if (targetRow + 1 >= ROWS) return null;
+      var below = blockInCell(col, targetRow + 1);
+      var ok = grid[targetRow + 1][col] === true ||
+        (below && Math.abs(blockRect(below).y - (targetRow + 1) * CELL) < 0.01);
+      if (!ok) return null;
+      support = (targetRow + 1) * CELL;
+    }
+
+    var w = type === 'spring' ? 48 : SPIKE_W;
+    var h = type === 'spring' ? 30 : SPIKE_H;
+    return {
+      col: col,
+      row: targetRow,
+      rect: { x: col * CELL + (CELL - w) / 2, y: support - h, w: w, h: h }
+    };
+  }
+
+  /* 某方向上的可用行程：被方块/地图边缘限制后实际能走多远 */
+  function moverFreeSpace(col, row, dir, rangeCells) {
+    var start = col * CELL;
+    var y = row * CELL + (CELL - MOVE_H);
+    var blockFree = Infinity;
+
+    for (var i = 0; i < staticSolids.length; i++) {
+      var s = staticSolids[i];
+      if (s.kind === 'wall') continue;
+      if (s.y + s.h <= y + 0.01 || s.y >= y + MOVE_H - 0.01) continue;
+      if (dir === 'right') {
+        if (s.x >= start + CELL - 0.01) blockFree = Math.min(blockFree, s.x - (start + CELL));
+      } else {
+        if (s.x + s.w <= start + 0.01) blockFree = Math.min(blockFree, start - (s.x + s.w));
+      }
+    }
+
+    var edgeFree = dir === 'right' ? (MAP - (start + CELL)) : start;
+    var travel = Math.min(rangeCells * CELL, Math.max(0, blockFree), Math.max(0, edgeFree));
+    return { travel: travel, byBlock: blockFree <= edgeFree };
+  }
+
+  function placeTrapAt(type, col, row, axis) {
+    if (!editorUnlocked && editorMode && !isEditLocked()) { flash('先把三步做完，机关工具随后解锁'); return false; }
+    if (axis === 'up') type = 'spring';
+    if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) { flash(MSG.bounds); return false; }
+    if (trapCount() >= budgetMax) {
+      flash(MSG.budget);
+      return denyAt(col, row);
+    }
+    if (isMarkedCell(col, row)) {
+      flash('起点/终点格子不能放置机关');
+      return denyAt(col, row);
+    }
+    if (tileAt(col, row)) {
+      flash(MSG.locked);
+      return denyAt(col, row);
+    }
+
+    if (type === 'mover') {
+      if (!activeMoverDir) {
+        flash('请先选择移动方向（向左 / 向右）');
+        return false;
+      }
+      if (tileAt(col, row)) { flash(MSG.locked); return false; }
+
+      // 只检测移动平台自身高度区间（格子底部 16px），同格其它高度区域不拦截
+      var band = { x: col * CELL, y: row * CELL + (CELL - MOVE_H), w: CELL, h: MOVE_H };
+      var bandBlock = blockInCell(col, row);
+      if (bandBlock && overlap(band, blockRect(bandBlock))) { flash(MSG.noSpace); return false; }
+      for (var bi2 = 0; bi2 < traps.length; bi2++) {
+        if (traps[bi2].type === 'mover') continue;
+        if (overlap(band, trapBox(traps[bi2]))) { flash(MSG.noSpace); return false; }
+      }
+      if (boxHitsPlayer(band)) { flash(MSG.noSpace); return false; }
+
+      var space = moverFreeSpace(col, row, activeMoverDir, activeMoverRange);
+      if (space.travel < 2) {
+        flash('移动空间不足，无法放置');
+        return denyAt(col, row);
+      }
+
+      pushUndo(editSnapshot());
+      markLayoutChanged();
+      traps.push({
+        type: 'mover', col: col, row: row, w: 1,
+        dir: activeMoverDir, range: activeMoverRange, speed: 55, cool: 0
+      });
+      buildPlatforms();
+      syncTemplate();
+      return true;
+    }
+
+    // 移动平台上不允许放机关
+    for (var mi = 0; mi < traps.length; mi++) {
+      if (traps[mi].type === 'mover' && traps[mi].col === col && traps[mi].row === row) {
+        flash(activeMount === 'top' ? '移动平台不支持放置机关' : '移动平台不支持侧面机关');
+        return false;
+      }
+    }
+    // 侧面挂载的前置校验（给出明确提示）
+    if (activeMount !== 'top') {
+      var sb = blockInCell(col, row);
+      if (!sb) {
+        flash('侧面挂载需要贴着方块');
+        return false;
+      }
+      if (sb.size === 'flat') {
+        flash('矮扁平台不支持侧面机关');
+        return false;
+      }
+    }
+
+    var pv = previewTrap(type, col, row, activeMount);
+    if (!pv) { flash(MSG.noSpace); return false; }
+    if (trapIndexAt(pv.col, pv.row) >= 0) { flash(MSG.noSpace); return false; }
+    if (boxHitsPlayer(pv.rect)) { flash(MSG.noSpace); return false; }
+
+    var t = {
+      type: type, col: pv.col, row: pv.row, mount: axis === 'up' ? 'top' : activeMount,
+      x: pv.rect.x, y: pv.rect.y, w: pv.rect.w, h: pv.rect.h, cool: 0
+    };
+    if (type === 'spring') t.dist = activeSpringDist;
+    if (type === 'spring' && axis === 'up') t.axis = 'up';
+    pushUndo(editSnapshot());
+    markLayoutChanged();
+    traps.push(t);
+    buildPlatforms();
+    syncTemplate();
+    return true;
+  }
+
+  /* 移动平台（含地图自带）的顶面与整条运动路径：禁止放静态方块 */
+  function blockHitsMover(rect) {
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      var sweep = {
+        x: p.minX,
+        y: p.y,
+        w: (p.maxX - p.minX) + p.w,
+        h: p.h
+      };
+      if (overlap(rect, sweep)) return true;
+    }
+    return false;
+  }
+
+  function blockRectFor(size, col, row) {
+    var def = BLOCKS[size] || BLOCKS.full;
+    return {
+      x: col * CELL + (CELL - def.w) / 2,
+      y: row * CELL + (CELL - def.h),
+      w: def.w,
+      h: def.h
+    };
+  }
+
+  function placeBlockAt(size, col, row) {
+    if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) { flash(MSG.bounds); return false; }
+    var rect = blockRectFor(size, col, row);
+
+    if (blockHitsMover(rect)) {
+      flash('不可放置在移动平台上');
+      return false;
+    }
+    if (tileAt(col, row)) {
+      flash(MSG.locked);
+      return false;
+    }
+    if (isMarkedCell(col, row)) {
+      flash('起点/终点格子不能放置方块');
+      return false;
+    }
+
+    // 满格：整格占用判定；薄平台（矮扁/窄条）：只检测自身体积区间是否有遮挡
+    if (size === 'full') {
+      if (trapIndexAt(col, row) >= 0) { flash(MSG.noSpace); return false; }
+    } else {
+      for (var ti = 0; ti < traps.length; ti++) {
+        var tb = trapBox(traps[ti]);
+        if (overlap(rect, tb)) { flash(MSG.noSpace); return false; }
+      }
+    }
+    if (boxHitsPlayer(rect)) { flash(MSG.noSpace); return false; }
+
+    pushUndo(editSnapshot());
+    markLayoutChanged();
+    var bi = blockIndexAt(col, row);
+    if (bi >= 0) blocks[bi].size = size;
+    else blocks.push({ col: col, row: row, size: size });
+    rebuildSolids();
+    syncTemplate();
+    return true;
+  }
+
+  function placeBlock(col, row, size) {    // 兼容旧调试入口
+    return placeBlockAt(size, col, row);
+  }
+
+  function removeAt(col, row) {
+    if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
+    if (tileAt(col, row)) { flash(MSG.locked); return false; }
+    var o = objectAt(col, row);
+    if (o) { pushUndo(editSnapshot()); markLayoutChanged(); }
+    if (o) {
+      if (o.kind === 'trap') {
+        traps.splice(o.index, 1);
+        buildPlatforms();
+      } else {
+        blocks.splice(o.index, 1);
+        rebuildSolids();
+      }
+      syncTemplate();
+      return true;
+    }
+    if (startCell && startCell.col === col && startCell.row === row) {
+      startCell = null;
+      syncTemplate();
+      return true;
+    }
+    if (goalCell && goalCell.col === col && goalCell.row === row) {
+      goalCell = null;
+      syncTemplate();
+      return true;
+    }
+    return false;
+  }
+
+  function moveObject(o, col, row) {
+    if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) { flash(MSG.bounds); return false; }
+    if (tileAt(col, row)) {
+      flash(MSG.locked);
+      return false;
+    }
+
+    if (o.kind === 'trap') {
+      var t = traps[o.index];
+      if (!t) return false;
+
+      if (t.type === 'mover') {
+        if (objectAt(col, row)) { flash(MSG.noSpace); return false; }
+        if (isMarkedCell(col, row)) { flash('起点/终点格子不能放置机关'); return false; }
+        if (boxHitsPlayer({ x: col * CELL, y: row * CELL, w: CELL, h: CELL })) { flash(MSG.noSpace); return false; }
+        var dir = t.dir || (t.to !== undefined && t.to < t.col ? 'left' : 'right');
+        var range = typeof t.range === 'number' ? t.range : 1;
+        if (moverFreeSpace(col, row, dir, range).travel < 2) {
+          flash('当前方向路径被方块阻挡，平台放置后无法运动，请更换方向或者换位置');
+          return false;
+        }
+        pushUndo(editSnapshot());
+        markLayoutChanged();
+        t.col = col;
+        t.row = row;
+        t.dir = dir;
+        t.range = range;
+        buildPlatforms();
+        syncTemplate();
+        return true;
+      }
+
+      var pv = previewTrap(t.type, col, row, t.mount || 'top');
+      if (!pv) { flash(MSG.noSpace); return false; }
+      if (isMarkedCell(pv.col, pv.row)) { flash('起点/终点格子不能放置机关'); return false; }
+      if (pv.col !== t.col || pv.row !== t.row) {
+        if (trapIndexAt(pv.col, pv.row) >= 0) { flash(MSG.noSpace); return false; }
+      }
+      if (boxHitsPlayer(pv.rect)) { flash(MSG.noSpace); return false; }
+      pushUndo(editSnapshot());
+      markLayoutChanged();
+      t.col = pv.col;
+      t.row = pv.row;
+      t.x = pv.rect.x;
+      t.y = pv.rect.y;
+      t.w = pv.rect.w;
+      t.h = pv.rect.h;
+      syncTemplate();
+      return true;
+    }
+
+    if (objectAt(col, row)) { flash(MSG.noSpace); return false; }
+    if (isMarkedCell(col, row)) { flash('起点/终点格子不能放置方块'); return false; }
+    pushUndo(editSnapshot());
+    markLayoutChanged();
+    var b = blocks[o.index];
+    if (!b) return false;
+    var rect = blockRectFor(b.size, col, row);
+    if (blockHitsMover(rect)) { flash('不可放置在移动平台上'); return false; }
+    if (boxHitsPlayer(rect)) { flash(MSG.noSpace); return false; }
+    b.col = col;
+    b.row = row;
+    rebuildSolids();
+    syncTemplate();
+    return true;
+  }
+
+  function toolLocked(tool) {
+    return !editorUnlocked && editorMode && tool && tool.kind === 'trap';
+  }
+
+  function useTool(col, row) {
+    var tool = TOOLS[activeTool] || TOOLS[0];
+    if (toolLocked(tool)) { flash('先把三步做完，机关工具随后解锁'); return false; }
+    if (tool.kind === 'marker') return placeMarker(tool.marker, col, row);
+    if (tool.kind === 'trap') return placeTrapAt(tool.type, col, row, tool.axis);
+    return placeBlockAt(tool.size, col, row);
+  }
+
+  canvas.addEventListener('mousedown', function (e) {
+    if (!editorMode) return;
+    e.preventDefault();
+    var p = canvasPoint(e);
+
+    // 操作说明展开/收起
+    var hb2 = helpBtnRect();
+    if (p.x >= hb2.x && p.x <= hb2.x + hb2.w && p.y >= hb2.y && p.y <= hb2.y + hb2.h) {
+      helpOpen = !helpOpen;
+      flash(helpOpen ? '操作说明已展开' : '操作说明已收起');
+      return;
+    }
+
+    // 先判断面板收起/展开按钮
+    var tg = palToggleRect();
+    if (p.x >= tg.x && p.x <= tg.x + tg.w && p.y >= tg.y && p.y <= tg.y + tg.h) {
+      paletteCollapsed = !paletteCollapsed;
+      flash(paletteCollapsed ? '机关面板已收起' : '机关面板已展开');
+      return;
+    }
+
+    var pi = paletteIndexAt(p.x, p.y);
+    if (pi >= 0) {
+      activeTool = pi;
+      goalTint = isGoalToolActive();
+      flash('已选：' + TOOLS[pi].label);
+      updateHud();
+      return;
+    }
+
+    var mi = mountChipAt(p.x, p.y);
+    if (mi >= 0) {
+      var mt = TOOLS[activeTool] || TOOLS[0];
+      if (mt.kind === 'trap' && mt.type === 'mover') {
+        if (mi < 2) {
+          activeMoverDir = mi === 0 ? 'left' : 'right';
+          flash('移动方向：' + (mi === 0 ? '向左' : '向右'));
+        }
+      } else {
+        activeMount = MOUNTS[mi][0];
+        flash('挂载方位：' + MOUNTS[mi][1]);
+      }
+      updateHud();
+      return;
+    }
+
+    var di = distChipAt(p.x, p.y);
+    if (di >= 0) {
+      var curTool = TOOLS[activeTool] || TOOLS[0];
+      if (curTool.kind === 'trap' && curTool.type === 'mover') {
+        activeMoverRange = di + 1;
+        flash('平台移动范围：' + activeMoverRange + ' 格');
+      } else if (curTool.kind === 'trap' && curTool.type === 'spring') {
+        activeSpringDist = di + 1;
+        flash('弹簧弹射：' + activeSpringDist + ' 格');
+      }
+      updateHud();
+      return;
+    }
+
+    var col = Math.floor(p.x / CELL);
+    var row = Math.floor(p.y / CELL);
+
+    if (e.button === 2) {
+      if (removeAt(col, row)) flash('已删除');
+      updateHud();
+      return;
+    }
+
+    var hit = objectAt(col, row);
+    if (hit) {
+      // 记下起点：松手时若没移动，就按“单击”处理（在方块上挂机关/换尺寸），
+      // 移动了才当成拖动换位
+      drag = { kind: hit.kind, index: hit.index, fromCol: col, fromRow: row };
+      return;
+    }
+
+    if (useTool(col, row)) {
+      flash('放置 ' + (TOOLS[activeTool] || TOOLS[0]).label + ' @ ' + col + ',' + row);
+    }
+    updateHud();
+  });
+
+  canvas.addEventListener('mousemove', function (e) {
+    if (!editorMode) return;
+    var p = canvasPoint(e);
+    hover.col = Math.floor(p.x / CELL);
+    hover.row = Math.floor(p.y / CELL);
+
+    // 选中终点工具时实时显示可达染色，放置完成后由 placeMarker 关掉
+    if (isGoalToolActive()) goalTint = true;
+
+    // 方块工具：悬停在移动平台顶面/路径上时光标变成“禁止”
+    var tool = TOOLS[activeTool] || TOOLS[0];
+    if (tool.kind === 'block') {
+      var rect = blockRectFor(tool.size, hover.col, hover.row);
+      canvas.style.cursor = blockHitsMover(rect) ? 'not-allowed' : 'crosshair';
+    } else {
+      canvas.style.cursor = 'crosshair';
+    }
+  });
+
+  window.addEventListener('mouseup', function (e) {
+    if (!editorMode || !drag) return;
+    var p = canvasPoint(e);
+    var col = Math.floor(p.x / CELL);
+    var row = Math.floor(p.y / CELL);
+    var sameCell = (col === drag.fromCol && row === drag.fromRow);
+
+    if (sameCell) {
+      // 单击已有对象：把当前工具“用”在它身上（起点/终点只放图标，绝不动方块）
+      var tool = TOOLS[activeTool] || TOOLS[0];
+      if (useTool(col, row)) {
+        if (tool.kind === 'marker') flash(tool.label + '已设置');
+        else if (tool.kind === 'trap') flash('已挂载 ' + tool.label);
+        else flash('已放置 ' + BLOCKS[tool.size].label);
+      }
+    } else if (moveObject(drag, col, row)) {
+      flash('已移动');
+    }
+    drag = null;
+    updateHud();
+  });
+
+  canvas.addEventListener('contextmenu', function (e) {
+    if (editorMode) e.preventDefault();
+  });
+
+  /* ---------- 布局 ---------- */
+  function layout() {
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var pad = vw < 520 ? 10 : 24;
+    var hudW = 208;
+    var gap = 16;
+    var showHud = vw >= 760;
+
+    hud.style.display = showHud ? 'flex' : 'none';
+
+    var availW = vw - pad * 2 - (showHud ? hudW + gap : 0);
+    var availH = vh - pad * 2;
+    var s = Math.min(1, availW / MAP, availH / MAP);
+    scale = Math.max(0.2, s);
+
+    var size = Math.round(MAP * scale);
+    stage.style.width = size + 'px';
+    stage.style.height = size + 'px';
+    app.style.padding = pad + 'px';
+
+    badge.textContent = COLS + '×' + ROWS + ' · ' + scale.toFixed(2) + '×';
+    elScale.textContent = scale.toFixed(2) + '×';
+  }
+
+  /* ---------- 碰撞（先预判、再落位） ---------- */
+  function areaFree(x, y, solids) {
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      if (x + BODY_W <= s.x + EPS || x >= s.x + s.w - EPS) continue;
+      if (y + BODY_H <= s.y + EPS || y >= s.y + s.h - EPS) continue;
+      return false;
+    }
+    return true;
+  }
+
+  function horizOverlap(x, s) {
+    return x + BODY_W > s.x + EPS && x < s.x + s.w - EPS;
+  }
+
+  /* 水平：先算目标位置，再按最近阻挡面回退；返回被挡住的固体 */
+  function resolveHoriz(p, nx, solids) {
+    var blocked = null;
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      // 严格规则：脚底必须到达/高于顶面（EPS 浮点容差）才放行，绝不托举
+      if (p.y + BODY_H <= s.y + EPS) continue;
+      if (p.y >= s.y + s.h - EPS) continue;      // 在下方
+      if (p.x + BODY_W <= s.x + EPS && nx + BODY_W > s.x) {
+        nx = s.x - BODY_W;
+        blocked = s;
+      } else if (p.x >= s.x + s.w - EPS && nx < s.x + s.w) {
+        nx = s.x + s.w;
+        blocked = s;
+      }
+    }
+    return { x: nx, blocked: blocked };
+  }
+
+  /* 垂直：用「上一帧脚底/头顶」判断穿越，再落位（不穿模） */
+  function resolveVert(p, prevY, nextY, solids) {
+    var dy = nextY - prevY;
+    var feet = prevY + BODY_H;
+    var newFeet = nextY + BODY_H;
+    var land = null;
+    var ceil = null;
+
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      if (!horizOverlap(p.x, s)) continue;
+
+      if (dy > 0) {
+        if (feet <= s.y + 0.5 && newFeet >= s.y) {
+          if (!land || s.y < land.y) land = s;
+        }
+      } else if (dy < 0) {
+        if (prevY >= s.y + s.h - 0.5 && nextY < s.y + s.h) {
+          if (!ceil || s.y + s.h > ceil.y + ceil.h) ceil = s;
+        }
+      }
+    }
+
+    if (land) {
+      nextY = land.y - BODY_H;
+      p.vy = 0;
+      p.onGround = true;
+      if (land.platform) p.riding = land.platform;
+      return nextY;
+    }
+    if (ceil) {
+      nextY = ceil.y + ceil.h;
+      p.vy = 0;
+    }
+    return nextY;
+  }
+
+  /* 台阶容错：脚本只允许「脚底已在顶面高度或仅差 ≤1px」时补最后一下，
+     脚在顶面下方一律不吸附（杜绝磁吸与提前拉台） */
+  function tryStepUp(p, s) {
+    if (p.onGround || p.stepUsed) return false;
+    if (p.vy >= 0) return false;                   // 只在上升段
+    if (s.platform) return false;                  // 平台不吸附
+    var feet = p.y + BODY_H;
+    var rise = feet - s.y;                         // >0 表示脚还在顶面下方
+    if (rise > STEP_TOL) return false;             // 关键：大于 1px 一律不托举
+    var ny = s.y - BODY_H;
+    if (!areaFree(p.x, ny, allSolids())) return false;
+    p.stepVisual += (p.y - ny);
+    p.y = ny;
+    p.vy = 0;
+    p.stepUsed = true;
+    p.lastStepRise = Math.max(0, rise);
+    return true;
+  }
+
+  /* ---------- 移动平台 ---------- */
+  function findRiding(p) {
+    var feet = p.y + BODY_H;
+    for (var i = 0; i < platforms.length; i++) {
+      var pf = platforms[i];
+      if (Math.abs(feet - pf.y) > 1.5) continue;
+      if (p.x + BODY_W <= pf.x + 0.5) continue;
+      if (p.x >= pf.x + pf.w - 0.5) continue;
+      return pf;
+    }
+    return null;
+  }
+
+  /* 平台与实心方块（地形/玩家放置方块）的预判碰撞：
+     返回将被挡住的贴边位置，没有阻挡返回 null */
+  function platformContact(p, nx) {
+    var w = p.w;
+    var best = null;
+    for (var i = 0; i < staticSolids.length; i++) {
+      var s = staticSolids[i];
+      if (s.kind === 'wall') continue;                       // 左右边界由 minX/maxX 管
+      if (s.y + s.h <= p.y + 0.01) continue;                 // 在平台上方
+      if (s.y >= p.y + p.h - 0.01) continue;                 // 在平台下方
+
+      if (p.dir > 0) {
+        if (p.x + w <= s.x + 0.01 && nx + w > s.x) {
+          var edgeR = s.x - w;
+          if (best === null || edgeR < best) best = edgeR;
+        }
+      } else {
+        if (p.x >= s.x + s.w - 0.01 && nx < s.x + s.w) {
+          var edgeL = s.x + s.w;
+          if (best === null || edgeL > best) best = edgeL;
+        }
+      }
+    }
+    return best;
+  }
+
+  /* 平台与某个实心方块重叠时的处理：尽量挪到方块外侧最近的可站位置，避免卡死 */
+  function platformOverlapsSolid(p) {
+    var box = { x: p.x, y: p.y, w: p.w, h: p.h };
+    for (var i = 0; i < staticSolids.length; i++) {
+      var s = staticSolids[i];
+      if (s.kind === 'wall') continue;
+      if (overlap(box, s)) return s;
+    }
+    return null;
+  }
+
+  function platformFreeAt(p, x) {
+    var box = { x: x, y: p.y, w: p.w, h: p.h };
+    for (var i = 0; i < staticSolids.length; i++) {
+      var s = staticSolids[i];
+      if (s.kind === 'wall') continue;
+      if (overlap(box, s)) return false;
+    }
+    return true;
+  }
+
+  function updatePlatforms(dt) {
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      var old = p.x;
+
+      var stuck = platformOverlapsSolid(p);
+      if (stuck) {
+        // 被后放的方块压住：挪到方块外侧最近的合法位置（左右都在范围内时选近的）
+        var cands = [stuck.x - p.w, stuck.x + stuck.w];
+        var best = null;
+        for (var ci = 0; ci < cands.length; ci++) {
+          var cx = Math.max(p.minX, Math.min(p.maxX, cands[ci]));
+          if (!platformFreeAt(p, cx)) continue;
+          if (best === null || Math.abs(cx - p.x) < Math.abs(best - p.x)) best = cx;
+        }
+        if (best !== null) p.x = best;
+        p.dir = -p.dir;
+        p.dx = p.x - old;
+        continue;
+      }
+
+      var nx = p.x + p.dir * p.speed * dt;
+
+      // 先预判：路径上有实心方块就停在边缘并回弹（机关不算阻挡）
+      var edge = platformContact(p, nx);
+      if (edge !== null) {
+        p.x = Math.max(p.minX, Math.min(p.maxX, edge));
+        p.dir = -p.dir;
+        p.dx = p.x - old;
+        continue;
+      }
+
+      p.x = nx;
+      if (p.x >= p.maxX) { p.x = p.maxX; p.dir = -1; }
+      else if (p.x <= p.minX) { p.x = p.minX; p.dir = 1; }
+      p.dx = p.x - old;
+    }
+  }
+
+  function playerFreeAt(x, y) {
+    var box = { x: x, y: y, w: BODY_W, h: BODY_H };
+    for (var i = 0; i < staticSolids.length; i++) {
+      if (overlap(box, staticSolids[i])) return false;
+    }
+    return true;
+  }
+
+  /* 平台主动撞进角色时把人分离出去：先同侧推出，被墙挡住就向上，再不行换另一侧，
+     绝不把角色压进墙体/方块内部 */
+  function pushOutOfPlatforms(pl) {
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      var pb = { x: p.x, y: p.y, w: p.w, h: p.h };
+      var box = { x: pl.x, y: pl.y, w: BODY_W, h: BODY_H };
+      if (!overlap(box, pb)) continue;
+
+      var onLeft = (pl.x + BODY_W / 2) < (pb.x + pb.w / 2);
+      var sameX = onLeft ? pb.x - BODY_W : pb.x + pb.w;
+      var otherX = onLeft ? pb.x + pb.w : pb.x - BODY_W;
+      var upY = pb.y - BODY_H;
+
+      if (playerFreeAt(sameX, pl.y)) {
+        pl.x = sameX;
+        pl.vx = 0;
+        if (pl.launchTimer > 0) pl.launchTimer = 0;
+        continue;
+      }
+      if (playerFreeAt(pl.x, upY)) {
+        pl.y = upY;
+        pl.vy = Math.min(0, pl.vy);
+        pl.onGround = true;
+        pl.riding = p;
+        continue;
+      }
+      if (playerFreeAt(otherX, pl.y)) {
+        pl.x = otherX;
+        pl.vx = 0;
+        if (pl.launchTimer > 0) pl.launchTimer = 0;
+      }
+    }
+  }
+
+  /* ---------- 机关 ---------- */
+  function hurtBox(pl) {
+    return { x: pl.x + 2, y: pl.y + 4, w: HURT_W, h: HURT_H };
+  }
+
+  function overlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function trapBox(t) {
+    if (t.type === 'mover') return { x: t.col * CELL, y: t.row * CELL, w: CELL, h: CELL };
+
+    var mount = t.mount || 'top';
+    if (mount === 'left' || mount === 'right') {
+      if (t.type === 'spike') {
+        return { x: t.x + 1, y: t.y + 2, w: t.w - 2, h: t.h - 4 };
+      }
+      return { x: t.x + 1, y: t.y + 2, w: t.w - 2, h: t.h - 4 };
+    }
+    if (t.type === 'spike') {
+      return { x: t.x + 2, y: t.y + 1, w: t.w - 4, h: t.h - 2 };   // 40×24 → 36×22
+    }
+    return { x: t.x + 2, y: t.y + 2, w: t.w - 4, h: t.h - 4 };
+  }
+
+  function damagePlayer(pl, amount, force) {
+    if (!force && pl.invincible > 0) return false;
+    pl.hp -= amount;
+    pl.invincible = INVINCIBLE_TIME;
+    if (pl.hp <= 0) {
+      pl.hp = 0;
+      respawnPlayer(pl);
+      pl.hp = HP_MAX;
+      flash(pl.name + ' HP 归零，已回到出生点');
+    }
+    return true;
+  }
+
+  function checkTraps(pl) {
+    var body = { x: pl.x, y: pl.y, w: BODY_W, h: BODY_H };
+    var hurt = hurtBox(pl);
+
+    // 起点格 / 终点格本身无敌：站在上面不吃尖刺伤害
+    var feetCol = Math.floor((pl.x + BODY_W / 2) / CELL);
+    var feetRow = Math.floor((pl.y + BODY_H - 1) / CELL);
+    var safeCell = isMarkedCell(feetCol, feetRow);
+
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type === 'spike') {
+        if (safeCell) continue;
+        if (pl.invincible > 0) continue;
+        if (overlap(hurt, trapBox(t))) {
+          if (damagePlayer(pl, SPIKE_DAMAGE)) scheduleCombo(pl, SPIKE_DAMAGE);
+        }
+      } else if (t.type === 'spring') {
+        if (t.cool > 0) continue;
+        if (pl.launchTimer > 0) continue;
+        if (pl.vy < 0) continue;
+        if (!overlap(body, trapBox(t))) continue;
+        if (t.axis === 'up') startSpringUp(pl, t.dist || 2);
+        else startLaunch(pl, -pl.facing, t.dist || 2);
+        t.cool = SPRING_COOLDOWN;
+      }
+    }
+  }
+
+  /* 纵向弹簧：直接给一个向上的初速度，弹起高度 = dist 格 */
+  function startSpringUp(pl, dist) {
+    var d = Math.max(1, Math.min(3, dist || 2)) * CELL;
+    pl.vy = -Math.sqrt(2 * GRAVITY * d);
+    pl.onGround = false;
+    pl.riding = null;
+    pl.jumpTrack.active = false;
+    pl.jumpTrack.apex = 0;
+  }
+
+  function startLaunch(pl, dir, dist) {
+    var d = Math.max(1, Math.min(2, dist || 2)) * CELL;
+    pl.launchDir = dir >= 0 ? 1 : -1;
+    pl.launchTimer = Math.sqrt(2 * SPRING_DECEL * d) / SPRING_DECEL;
+    pl.launchHit = false;
+    pl.jumpTrack.active = false;
+    pl.jumpTrack.apex = 0;
+  }
+
+  /* ---------- 更新 ---------- */
+  function update(dt) {
+    if (flashTimer > 0) {
+      flashTimer -= dt;
+      if (flashTimer <= 0) elFlash.classList.remove('on');
+    }
+    if (deny.t > 0) deny.t = Math.max(0, deny.t - dt);
+    if (goalFail) {
+      goalFail.t -= dt;
+      if (goalFail.t <= 0) goalFail = null;
+    }
+    for (var i = 0; i < traps.length; i++) {
+      if (traps[i].cool > 0) traps[i].cool = Math.max(0, traps[i].cool - dt);
+    }
+    for (var ti = 0; ti < trapTips.length; ti++) {
+      if (trapTips[ti].t > 0) trapTips[ti].t = Math.max(0, trapTips[ti].t - dt);
+    }
+    if (editorMode) return;                        // 编辑时冻结角色
+    if (winner) return;                            // 结算后冻结
+    if (!startCell) return;                        // 空白画布：没有起点前角色不动
+
+    updateCombo(dt);
+    updatePlatforms(dt);
+
+    // ① 先批量采集本帧输入（此步不移动任何角色）
+    collectInput();
+
+    // ② 输入采集完成后，再同时计算两人的物理 / 碰撞 / 跳跃
+    var liveCount = gameMode === 'solo' ? 1 : players.length;
+    for (var pi = 0; pi < liveCount; pi++) updatePlayer(players[pi], dt);
+
+    if (gameMode === 'duo') {
+      if (isFirstSpawnRound) {
+        // 开局保护待命 / 倒计时中：跳过玩家之间的互推、踩头、弹簧撞击
+        // 地形、方块、尖刺、弹簧、移动平台、重力、输入全部照常
+        players[0].spawnProtect = 1;
+        players[1].spawnProtect = 1;
+        if (spawnSafeFrameCount > 0) {
+          spawnSafeFrameCount -= 1;
+          if (spawnSafeFrameCount <= 0) {
+            isFirstSpawnRound = false;
+            players[0].spawnProtect = 0;
+            players[1].spawnProtect = 0;
+            console.log('[spawn] 开局保护结束（4 帧倒计时跑完），恢复双人互相碰撞');
+          }
+        }
+      } else {
+        updatePair(dt);
+      }
+    }
+    checkGoal();
+  }
+
+  /* ---------- 输入快照：一帧内所有角色共用同一份采集结果 ---------- */
+  var frameInput = [
+    { left: false, right: false, jump: false },
+    { left: false, right: false, jump: false }
+  ];
+
+  function collectInput() {
+    for (var i = 0; i < players.length; i++) {
+      var p = players[i];
+      var inp = frameInput[i];
+      inp.left = held.has(p.ctrl.left);
+      inp.right = held.has(p.ctrl.right);
+      inp.jump = p.jumpQueued;       // 边沿触发的跳跃，采集后清空
+      p.jumpQueued = false;
+    }
+  }
+
+  function updatePlayer(p, dt) {
+    var inp = frameInput[p.id] || frameInput[0];
+
+    if (p.invincible > 0) p.invincible = Math.max(0, p.invincible - dt);
+    if (p.stun > 0) p.stun = Math.max(0, p.stun - dt);
+    if (p.stompCool > 0) p.stompCool = Math.max(0, p.stompCool - dt);
+    if (p.stepVisual > 0) p.stepVisual = Math.max(0, p.stepVisual - STEP_SMOOTH * dt);
+
+    // 跳跃缓冲 + 土狼时间：只放宽输入窗口，物理参数不变
+    p.jumpBuffer = Math.max(0, p.jumpBuffer - dt);
+    if (inp.jump) {
+      p.jumpBuffer = JUMP_BUFFER_TIME;      // 只保留最近一次跳跃输入
+      inp.jump = false;
+    }
+    if (p.jumpBuffer > 0 && p.stun <= 0 && (p.onGround || p.coyote > 0)) {
+      p.vy = -JUMP_V;
+      p.onGround = false;
+      p.riding = null;
+      p.jumpTrack.active = true;
+      p.jumpTrack.startY = p.y;
+      p.jumpTrack.apex = 0;
+      p.jumpBuffer = 0;                     // 触发后清空缓存，避免连跳失控
+      p.coyote = 0;                         // 起跳即清零，杜绝二段跳
+    }
+
+    // 移动平台载人（平台在 updatePlatforms 里已经移动过）
+    var carrier = findRiding(p);
+    if (carrier && carrier.dx !== 0) {
+      var carryRes = resolveHoriz(p, p.x + carrier.dx, staticSolids);
+      p.x = carryRes.x;
+      if (carryRes.blocked) p.vx = 0;
+    }
+    pushOutOfPlatforms(p);
+
+    var solids = allSolids();
+
+    // 水平：先预判再落位（输入来自本帧统一采集的快照）
+    if (p.launchTimer > 0) {
+      var vMid = SPRING_DECEL * Math.max(0, p.launchTimer - dt * 0.5);
+      p.vx = p.launchDir * vMid;
+      p.launchTimer = Math.max(0, p.launchTimer - dt);
+      p.moveDir = 0;
+    } else {
+      var dir = 0;
+      if (p.stun <= 0) {
+        if (inp.left) dir -= 1;
+        if (inp.right) dir += 1;
+      }
+      if (dir !== 0) p.facing = dir;
+      p.vx = dir * MOVE_SPEED;
+      p.moveDir = dir;
+    }
+
+    if (p.vx !== 0) {
+      var hres = resolveHoriz(p, p.x + p.vx * dt, solids);
+      p.x = hres.x;
+      if (hres.blocked) {
+        if (tryStepUp(p, hres.blocked)) {
+          // 登上台阶，保留水平速度
+        } else {
+          p.vx = 0;
+          if (p.launchTimer > 0) p.launchTimer = 0;
+        }
+      }
+    }
+
+    // 垂直：先预判穿越再落位
+    var prevY = p.y;
+    var dy = p.vy * dt + 0.5 * GRAVITY * dt * dt;
+    var nextY = prevY + dy;
+    p.vy += GRAVITY * dt;
+    p.onGround = false;
+    p.riding = null;
+    p.y = resolveVert(p, prevY, nextY, solids);
+    if (p.onGround) {
+      p.stepUsed = false;
+      p.coyote = COYOTE_TIME;                 // 站在地面上：刷新土狼时间
+    } else {
+      p.coyote = Math.max(0, p.coyote - dt);  // 离地后 100ms 内仍可起跳
+    }
+
+    if (p.jumpTrack.active) {
+      var up = p.jumpTrack.startY - p.y;
+      if (up > p.jumpTrack.apex) p.jumpTrack.apex = up;
+      if (p.onGround) {
+        p.lastApex = p.jumpTrack.apex;
+        p.jumpTrack.active = false;
+      }
+    }
+
+    checkTraps(p);
+
+    if (p.y > MAP + 64) {
+      respawnPlayer(p);
+      flash(p.name + ' 掉出地图，已回到出生点');
+    }
+  }
+
+  /* ---------- 双人互动：踩头 / 弹簧撞击 / 轻推分离 ---------- */
+  function boxesOverlapX(a, b) {
+    return a.x + BODY_W > b.x + 1 && a.x < b.x + BODY_W - 1;
+  }
+
+  function tryStomp(upper, lower) {
+    if (upper.vy <= 0) return false;
+    var feet = upper.y + BODY_H;
+    var head = lower.y;
+    if (feet < head - 6 || feet > head + 20) return false;
+    if (!boxesOverlapX(upper, lower)) return false;
+    if (upper.y >= lower.y + BODY_H - 4) return false;
+
+    if (upper.vy > 120 && upper.stompCool <= 0) {
+      // 踩头：上方借力弹起，下方被踩晕
+      upper.vy = -STOMP_BOUNCE;
+      upper.onGround = false;
+      upper.riding = null;
+      upper.jumpTrack.active = false;
+      upper.stompCool = 0.3;
+      lower.stun = 0.35;
+      lower.vy = Math.max(lower.vy, 120);
+      flash('踩头！' + upper.name + ' 借力弹起');
+      return true;
+    }
+    // 轻踩：站在对方头顶
+    upper.y = head - BODY_H;
+    upper.vy = Math.min(upper.vy, 0);
+    upper.onGround = true;
+    return true;
+  }
+
+  function trySpringHit(launcher, victim) {
+    if (launcher.launchTimer <= 0 || launcher.launchHit) return;
+    var a = { x: launcher.x, y: launcher.y, w: BODY_W, h: BODY_H };
+    var b = { x: victim.x, y: victim.y, w: BODY_W, h: BODY_H };
+    if (!overlap(a, b)) return;
+    launcher.launchHit = true;
+    startLaunch(victim, launcher.launchDir, 2);
+    victim.stun = 0.2;
+    if (damagePlayer(victim, SPRING_HIT_DAMAGE)) scheduleCombo(victim, SPRING_HIT_DAMAGE);
+    flash(launcher.name + ' 弹簧撞击 ' + victim.name + '！');
+  }
+
+  function updatePair(dt) {
+    var a = players[0];
+    var b = players[1];
+    if (winner) return;
+    // §5.3：出生保护帧内跳过互推 / 踩头 / 弹簧撞击（地形、机关、重力、输入照常）
+    if (a.spawnProtect > 0 || b.spawnProtect > 0) return;
+
+    tryStomp(a, b);
+    tryStomp(b, a);
+
+    trySpringHit(a, b);
+    trySpringHit(b, a);
+
+    // 轻微分离，避免两人完全重叠
+    // 例外：两人同向移动时不互推，保证同步前进不会拉开固定位次差
+    var sameDir = a.moveDir !== 0 && a.moveDir === b.moveDir;
+    var ab = { x: a.x, y: a.y, w: BODY_W, h: BODY_H };
+    var bb = { x: b.x, y: b.y, w: BODY_W, h: BODY_H };
+    if (!sameDir && overlap(ab, bb) && !(a.y + BODY_H <= b.y + 8) && !(b.y + BODY_H <= a.y + 8)) {
+      var sign = (a.x + BODY_W / 2) >= (b.x + BODY_W / 2) ? 1 : -1;
+      var push = 90 * dt;
+      var ra = resolveHoriz(a, a.x + sign * push, staticSolids);
+      a.x = ra.x;
+      var rb = resolveHoriz(b, b.x - sign * push, staticSolids);
+      b.x = rb.x;
+    }
+  }
+
+  /* ---------- 连坐：0.5s 延迟 → 0.6s 红圈预警 → 50% 伤害 ---------- */
+  function scheduleCombo(cause, amount) {
+    if (gameMode !== 'duo') return;            // 单人模式没有连坐
+    var victim = players[cause.id === 0 ? 1 : 0];
+    if (!victim) return;
+    comboQueue.push({
+      victim: victim,
+      dmg: Math.max(1, Math.round(amount * COMBO_RATIO)),
+      phase: 'delay',
+      t: COMBO_DELAY
+    });
+  }
+
+  function updateCombo(dt) {
+    for (var i = comboQueue.length - 1; i >= 0; i--) {
+      var c = comboQueue[i];
+      c.t -= dt;
+      if (c.t > 0) continue;
+      if (c.phase === 'delay') {
+        c.phase = 'warn';
+        c.t = COMBO_WARN;
+        flash('连坐预警：' + c.victim.name + ' 脚下出现红圈');
+      } else {
+        comboQueue.splice(i, 1);
+        if (damagePlayer(c.victim, c.dmg, true)) flash('连坐生效：' + c.victim.name + ' -' + c.dmg + ' HP');
+      }
+    }
+  }
+
+  /* 身体与终点格的重叠面积：超过身体一半才算进入终点 */
+  function goalOverlapArea(p) {
+    if (!goalCell) return 0;
+    var gx = goalCell.col * CELL;
+    var gy = goalCell.row * CELL;
+    var ow = Math.min(p.x + BODY_W, gx + CELL) - Math.max(p.x, gx);
+    var oh = Math.min(p.y + BODY_H, gy + CELL) - Math.max(p.y, gy);
+    if (ow <= 0 || oh <= 0) return 0;
+    return ow * oh;
+  }
+
+  function checkGoal() {
+    if (winner || !goalCell) return;
+    var need = (BODY_W * BODY_H) / 2;      // 身体过半才触发
+    var n = gameMode === 'solo' ? 1 : players.length;
+    for (var i = 0; i < n; i++) {
+      var p = players[i];
+      if (goalOverlapArea(p) > need) {
+        if (mapMode === 'official') {
+          officialCleared[COLS + '_' + currentOfficial] = Date.now();   // 官图单独记录通关
+        } else if (!isEditLocked()) {
+          mapVerified = true;                                          // 只有自己这张图才点亮分享
+          mapVerifiedAt = Date.now();
+        }
+        winner = p;
+        p.wins++;
+        flash(gameMode === 'solo' ? '通关成功！按 R 重开' : (p.name + ' 获胜！按 R 重开'));
+        updateHud();
+        return;
+      }
+    }
+  }
+
+  /* ---------- 渲染 ---------- */
+  function roundRect(x, y, w, h, r) {
+    var rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function drawGrid() {
+    ctx.fillStyle = '#0d1218';
+    ctx.fillRect(0, 0, MAP, MAP);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(130,170,220,.10)';
+    ctx.beginPath();
+    for (var i = 0; i <= COLS; i++) {
+      var p = i * CELL + 0.5;
+      ctx.moveTo(p, 0);
+      ctx.lineTo(p, MAP);
+      ctx.moveTo(0, p);
+      ctx.lineTo(MAP, p);
+    }
+    ctx.stroke();
+  }
+
+  function drawTiles() {
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (!grid[r][c]) continue;
+        var x = c * CELL;
+        var y = r * CELL;
+
+        ctx.fillStyle = '#1a2534';
+        ctx.fillRect(x, y, CELL, CELL);
+
+        ctx.fillStyle = 'rgba(255,255,255,.028)';
+        ctx.fillRect(x + 4, y + 4, CELL - 8, CELL - 8);
+
+        if (!solidAt(c, r - 1)) {
+          ctx.fillStyle = '#3f6392';
+          ctx.fillRect(x, y, CELL, 3);
+          ctx.fillStyle = 'rgba(130,190,255,.16)';
+          ctx.fillRect(x, y + 3, CELL, 5);
+        }
+        if (!solidAt(c, r + 1)) {
+          ctx.fillStyle = 'rgba(0,0,0,.35)';
+          ctx.fillRect(x, y + CELL - 3, CELL, 3);
+        }
+      }
+    }
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(140,190,255,.30)';
+    ctx.strokeRect(1, 1, MAP - 2, MAP - 2);
+  }
+
+  function drawBlocks() {
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i];
+      var r = blockRect(b);
+      ctx.fillStyle = '#2b4a42';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+
+      ctx.fillStyle = 'rgba(120,230,200,.22)';
+      ctx.fillRect(r.x + 2, r.y + 2, r.w - 4, 6);
+
+      ctx.strokeStyle = 'rgba(120,230,200,.55)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+    }
+  }
+
+  function drawSpikeTrap(t) {
+    var mount = t.mount || 'top';
+
+    if (mount === 'left' || mount === 'right') {
+      var n = 4;
+      var step = t.h / n;
+      for (var i = 0; i < n; i++) {
+        var y0 = t.y + i * step;
+        ctx.beginPath();
+        if (mount === 'left') {
+          ctx.moveTo(t.x + t.w, y0 + 1);
+          ctx.lineTo(t.x, y0 + step / 2);
+          ctx.lineTo(t.x + t.w, y0 + step - 1);
+        } else {
+          ctx.moveTo(t.x, y0 + 1);
+          ctx.lineTo(t.x + t.w, y0 + step / 2);
+          ctx.lineTo(t.x, y0 + step - 1);
+        }
+        ctx.closePath();
+        ctx.fillStyle = '#c2d0e2';
+        ctx.fill();
+      }
+      return;
+    }
+
+    ctx.fillStyle = 'rgba(20,26,36,.9)';
+    ctx.fillRect(t.x, t.y + t.h - 5, t.w, 5);
+
+    var w = t.w / 3;
+    for (var k = 0; k < 3; k++) {
+      var sx = t.x + k * w;
+      ctx.beginPath();
+      ctx.moveTo(sx + 1, t.y + t.h - 4);
+      ctx.lineTo(sx + w / 2, t.y);
+      ctx.lineTo(sx + w - 1, t.y + t.h - 4);
+      ctx.closePath();
+      ctx.fillStyle = '#c2d0e2';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(sx + w / 2, t.y);
+      ctx.lineTo(sx + w - 1, t.y + t.h - 4);
+      ctx.lineTo(sx + w / 2, t.y + t.h - 4);
+      ctx.closePath();
+      ctx.fillStyle = '#8194ab';
+      ctx.fill();
+    }
+  }
+
+  function drawSpringTrap(t) {
+    var mount = t.mount || 'top';
+
+    if (mount === 'left' || mount === 'right') {
+      ctx.fillStyle = 'rgba(18,24,33,.95)';
+      roundRect(t.x, t.y, t.w, t.h, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = '#4fd1ff';
+      ctx.lineWidth = 2;
+      var fx = mount === 'left' ? t.x + 5 : t.x + t.w - 5;
+      ctx.beginPath();
+      for (var i = 0; i < 3; i++) {
+        var yy = t.y + 8 + i * 12;
+        ctx.moveTo(fx, yy);
+        ctx.lineTo(fx + (mount === 'left' ? 6 : -6), yy + 6);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#4fd1ff';
+      if (mount === 'left') ctx.fillRect(t.x, t.y + 3, 5, t.h - 6);
+      else ctx.fillRect(t.x + t.w - 5, t.y + 3, 5, t.h - 6);
+      return;
+    }
+
+    ctx.fillStyle = 'rgba(18,24,33,.95)';
+    roundRect(t.x, t.y + 9, t.w, t.h - 9, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = '#4fd1ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var j = 0; j < 3; j++) {
+      var y2 = t.y + 11 + j * 5;
+      ctx.moveTo(t.x + 5, y2);
+      ctx.lineTo(t.x + t.w - 5, y2 + 2);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = '#4fd1ff';
+    roundRect(t.x + 4, t.y, t.w - 8, 8, 3);
+    ctx.fill();
+
+    // 方向标识：上弹画上下箭头，横弹画左右箭头
+    ctx.save();
+    ctx.strokeStyle = t.axis === 'up' ? '#ffd166' : '#7de2a8';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    if (t.axis === 'up') {
+      var cx = t.x + t.w / 2;
+      ctx.moveTo(cx, t.y - 2); ctx.lineTo(cx, t.y - 9);
+      ctx.moveTo(cx - 3.5, t.y - 6); ctx.lineTo(cx, t.y - 9.5); ctx.lineTo(cx + 3.5, t.y - 6);
+      ctx.moveTo(cx - 3.5, t.y + 4); ctx.lineTo(cx, t.y + 7.5); ctx.lineTo(cx + 3.5, t.y + 4);
+    } else {
+      var cy = t.y + t.h / 2;
+      ctx.moveTo(t.x - 2, cy); ctx.lineTo(t.x - 8, cy);
+      ctx.moveTo(t.x - 5, cy - 3.5); ctx.lineTo(t.x - 8.5, cy); ctx.lineTo(t.x - 5, cy + 3.5);
+      ctx.moveTo(t.x + t.w + 2, cy); ctx.lineTo(t.x + t.w + 8, cy);
+      ctx.moveTo(t.x + t.w + 5, cy - 3.5); ctx.lineTo(t.x + t.w + 8.5, cy); ctx.lineTo(t.x + t.w + 5, cy + 3.5);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPlatforms() {
+    for (var i = 0; i < platforms.length; i++) {
+      var p = platforms[i];
+      ctx.fillStyle = '#2a4a6b';
+      roundRect(p.x + 1, p.y, p.w - 2, p.h, 4);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(140,210,255,.55)';
+      ctx.fillRect(p.x + 2, p.y, p.w - 4, 3);
+
+      ctx.fillStyle = 'rgba(200,230,255,.25)';
+      for (var b = 0; b < p.w; b += 24) {
+        ctx.fillRect(p.x + b + 10, p.y + 8, 4, 4);
+      }
+    }
+  }
+
+  function drawMarkers() {
+    if (startCell) {
+      var sx = startCell.col * CELL;
+      var sBase = markerBaseY(startCell);
+
+      ctx.strokeStyle = 'rgba(120,230,180,.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(sx + 32, sBase - 4, 20, 6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(120,230,180,.95)';
+      ctx.beginPath();
+      ctx.moveTo(sx + 32, sBase - 22);
+      ctx.lineTo(sx + 24, sBase - 10);
+      ctx.lineTo(sx + 40, sBase - 10);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = '600 10px ui-monospace,Consolas,monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(170,245,205,.95)';
+      ctx.fillText('起', sx + 32, sBase - 38);
+    }
+
+    if (goalCell) {
+      var gx = goalCell.col * CELL;
+      var baseY = markerBaseY(goalCell);
+
+      ctx.strokeStyle = 'rgba(255,210,120,.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(gx + 24, baseY - 6);
+      ctx.lineTo(gx + 24, baseY - 44);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,210,120,.95)';
+      ctx.beginPath();
+      ctx.moveTo(gx + 24, baseY - 44);
+      ctx.lineTo(gx + 46, baseY - 36);
+      ctx.lineTo(gx + 24, baseY - 28);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = '600 10px ui-monospace,Consolas,monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(255,228,165,.95)';
+      ctx.fillText('终', gx + 42, baseY - 14);
+    }
+  }
+
+  function drawPlayer(p) {
+    var x = Math.round(p.x);
+    var y = Math.round(p.y + p.stepVisual);
+
+    if (p.invincible > 0 && Math.floor(p.invincible * 24) % 2 === 0) return;
+
+    ctx.fillStyle = p.id === 0 ? 'rgba(76,141,255,.16)' : 'rgba(240,138,60,.16)';
+    ctx.beginPath();
+    ctx.ellipse(x + BODY_W / 2, y + BODY_H - 2, BODY_W * 0.62, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    var g = ctx.createLinearGradient(0, y, 0, y + BODY_H);
+    g.addColorStop(0, p.color.body[0]);
+    g.addColorStop(1, p.color.body[1]);
+    ctx.fillStyle = g;
+    roundRect(x, y, BODY_W, BODY_H, 6);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    roundRect(x + 4, y + 4, BODY_W - 8, 8, 4);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,255,.6)';
+    ctx.fillRect(p.facing >= 0 ? x + BODY_W - 8 : x + 3, y + BODY_H - 26, 5, 10);
+
+    if (p.stun > 0) {
+      ctx.fillStyle = 'rgba(255,220,120,.9)';
+      ctx.font = '600 9px ui-monospace,Consolas,monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('晕', x + BODY_W / 2, y - 6);
+    }
+
+    if (showBoxes) {
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(79,209,255,.9)';
+      ctx.strokeRect(x - 2 + 0.5, y + 4 + 0.5, PUSH_W - 1, PUSH_H - 1);
+      ctx.strokeStyle = 'rgba(255,107,107,.95)';
+      ctx.strokeRect(x + 2 + 0.5, y + 4 + 0.5, HURT_W - 1, HURT_H - 1);
+    }
+
+    ctx.fillStyle = 'rgba(6,12,22,.62)';
+    ctx.font = '600 10px ui-monospace,Consolas,monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, x + BODY_W / 2, y + BODY_H - 12);
+  }
+
+  /* 连坐预警：目标脚下红圈 */
+  function drawComboWarnings() {
+    for (var i = 0; i < comboQueue.length; i++) {
+      var c = comboQueue[i];
+      if (c.phase !== 'warn') continue;
+      var v = c.victim;
+      var cx = v.x + BODY_W / 2;
+      var cy = v.y + BODY_H + 2;
+      var pulse = 0.55 + 0.45 * Math.abs(Math.sin(c.t * 9));
+
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = 'rgba(255,80,80,.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 22, 7, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,140,140,.7)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 15, 4.5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawWinner() {
+    if (!winner) return;
+    var solo = gameMode === 'solo';
+    var title = solo ? '通关成功' : (winner.name + ' 获胜');
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(6,10,16,.62)';
+    ctx.fillRect(0, 0, MAP, MAP);
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = solo ? '#9fe8c4' : winner.color.tag;
+    ctx.font = '700 40px system-ui,sans-serif';
+    ctx.fillText(title, MAP / 2, MAP / 2 - 26);
+
+    ctx.fillStyle = 'rgba(220,235,255,.9)';
+    ctx.font = '600 15px system-ui,sans-serif';
+    ctx.fillText('按 R 重开一局', MAP / 2, MAP / 2 + 26);
+    if (!isEditLocked()) {                       // 官图锁定：不显示编辑入口
+      ctx.font = '400 12px system-ui,sans-serif';
+      ctx.fillStyle = 'rgba(170,200,235,.75)';
+      ctx.fillText('按 E 继续改地图', MAP / 2, MAP / 2 + 52);
+    }
+    ctx.restore();
+  }
+
+  /* 编辑器面板外框 */
+  function editorBox() {
+    var rows = Math.ceil(TOOLS.length / 2);
+    return {
+      x: PAL.x - 8,
+      y: PAL.y - 30,
+      w: 2 * PAL.colW + PAL.gap + 18,
+      h: rows * (PAL.rowH + PAL.gap) + 142 + (helpOpen ? 92 : 0)
+    };
+  }
+
+  /* 面板底部「操作说明」按钮 */
+  function helpBtnRect() {
+    var box = editorBox();
+    return { x: box.x + 8, y: box.y + box.h - 26, w: 84, h: 18 };
+  }
+
+  function drawEditor() {
+    if (paletteCollapsed) {
+      // 收起态：只留一个展开按钮，画布不再被遮挡
+      var tr = palToggleRect();
+      ctx.fillStyle = 'rgba(9,14,21,.88)';
+      roundRect(tr.x, tr.y, tr.w, tr.h, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,170,230,.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#cfe0f5';
+      ctx.font = '600 11px system-ui,sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('机关面板 ▸', tr.x + tr.w / 2, tr.y + tr.h / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    var box = editorBox();
+    var bx = box.x;
+    var by = box.y;
+    var bw = box.w;
+    var bh = box.h;
+
+    ctx.fillStyle = 'rgba(9,14,21,.88)';
+    roundRect(bx, by, bw, bh, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120,170,230,.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 收起按钮（面板右上角）
+    var tg = palToggleRect();
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    roundRect(tg.x, tg.y, tg.w, tg.h, 5);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(140,170,210,.3)';
+    ctx.stroke();
+    ctx.fillStyle = '#b9c7d9';
+    ctx.font = '10px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('收起', tg.x + tg.w / 2, tg.y + tg.h / 2);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = '#cfe0f5';
+    ctx.font = '600 11px system-ui,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('编辑模式', PAL.x, PAL.y - 16);
+
+    var full = trapCount() >= budgetMax;
+    ctx.fillStyle = full ? '#ff8a8a' : '#8fd3b6';
+    ctx.font = '600 11px ui-monospace,Consolas,monospace';
+    ctx.fillText('机关 ' + trapCount() + '/' + budgetMax, PAL.x + 74, PAL.y - 16);
+
+    for (var i = 0; i < TOOLS.length; i++) {
+      var r = paletteRect(i);
+      var active = i === activeTool;
+      ctx.fillStyle = active ? 'rgba(76,141,255,.30)' : 'rgba(255,255,255,.05)';
+      roundRect(r.x, r.y, r.w, r.h, 6);
+      ctx.fill();
+      ctx.strokeStyle = active ? 'rgba(130,185,255,.95)' : 'rgba(140,170,210,.22)';
+      ctx.stroke();
+
+      drawToolIcon(TOOLS[i], r, active);
+
+      ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
+      ctx.font = '600 11px system-ui,sans-serif';
+      ctx.fillText((i + 1) + ' ' + TOOLS[i].label, r.x + 28, r.y + r.h / 2);
+    }
+
+    var tool = TOOLS[activeTool] || TOOLS[0];
+    var isTrapTool = tool.kind === 'trap' && tool.type !== 'mover';
+
+    // 挂载方位：顶面 / 左侧 / 右侧
+    if (isTrapTool) {
+      ctx.fillStyle = 'rgba(150,170,195,.9)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText('方位', PAL.x, mountChipRect(0).y + 11);
+      for (var m = 0; m < MOUNTS.length; m++) {
+        var cr = mountChipRect(m);
+        var on = activeMount === MOUNTS[m][0];
+        ctx.fillStyle = on ? 'rgba(76,141,255,.32)' : 'rgba(255,255,255,.05)';
+        roundRect(cr.x, cr.y, cr.w, cr.h, 5);
+        ctx.fill();
+        ctx.strokeStyle = on ? 'rgba(130,185,255,.95)' : 'rgba(140,170,210,.22)';
+        ctx.stroke();
+        ctx.fillStyle = on ? '#eaf2ff' : '#b9c7d9';
+        ctx.font = '10px system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(MOUNTS[m][1], cr.x + cr.w / 2, cr.y + cr.h / 2);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // 弹簧弹射距离：1 格 / 2 格
+    if (tool.kind === 'trap' && tool.type === 'spring') {
+      ctx.fillStyle = 'rgba(150,170,195,.9)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText('弹射', PAL.x, distChipRect(0).y + 11);
+      for (var d = 0; d < 2; d++) {
+        var dr = distChipRect(d);
+        var onD = activeSpringDist === d + 1;
+        ctx.fillStyle = onD ? 'rgba(79,209,255,.28)' : 'rgba(255,255,255,.05)';
+        roundRect(dr.x, dr.y, dr.w, dr.h, 5);
+        ctx.fill();
+        ctx.strokeStyle = onD ? 'rgba(120,220,255,.9)' : 'rgba(140,170,210,.22)';
+        ctx.stroke();
+        ctx.fillStyle = onD ? '#eaf2ff' : '#b9c7d9';
+        ctx.font = '10px system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText((d + 1) + ' 格', dr.x + dr.w / 2, dr.y + dr.h / 2);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // 移动平台：方向 + 移动范围 + 不支持侧面机关的提示
+    if (tool.kind === 'trap' && tool.type === 'mover') {
+      ctx.fillStyle = 'rgba(150,170,195,.9)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText('方向', PAL.x, mountChipRect(0).y + 11);
+      var DIRS = [['left', '向左'], ['right', '向右']];
+      for (var dd = 0; dd < 2; dd++) {
+        var dc = mountChipRect(dd);
+        var onDir = activeMoverDir === DIRS[dd][0];
+        ctx.fillStyle = onDir ? 'rgba(79,209,255,.28)' : 'rgba(255,255,255,.05)';
+        roundRect(dc.x, dc.y, dc.w, dc.h, 5);
+        ctx.fill();
+        ctx.strokeStyle = onDir ? 'rgba(120,220,255,.95)' : 'rgba(140,170,210,.22)';
+        ctx.stroke();
+        ctx.fillStyle = onDir ? '#eaf2ff' : '#b9c7d9';
+        ctx.font = '10px system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(DIRS[dd][1], dc.x + dc.w / 2, dc.y + dc.h / 2);
+        ctx.textAlign = 'left';
+      }
+
+      ctx.fillStyle = 'rgba(150,170,195,.9)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText('范围', PAL.x, distChipRect(0).y + 11);
+      for (var g = 0; g < 2; g++) {
+        var gr = distChipRect(g);
+        var onG = activeMoverRange === g + 1;
+        ctx.fillStyle = onG ? 'rgba(79,209,255,.28)' : 'rgba(255,255,255,.05)';
+        roundRect(gr.x, gr.y, gr.w, gr.h, 5);
+        ctx.fill();
+        ctx.strokeStyle = onG ? 'rgba(120,220,255,.9)' : 'rgba(140,170,210,.22)';
+        ctx.stroke();
+        ctx.fillStyle = onG ? '#eaf2ff' : '#b9c7d9';
+        ctx.font = '10px system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText((g + 1) + ' 格', gr.x + gr.w / 2, gr.y + gr.h / 2);
+        ctx.textAlign = 'left';
+      }
+
+      ctx.fillStyle = activeMoverDir ? 'rgba(255,170,120,.95)' : 'rgba(255,210,120,.95)';
+      ctx.font = '10px system-ui,sans-serif';
+      ctx.fillText(activeMoverDir ? '移动平台不支持侧面机关' : '请先选择移动方向', PAL.x, distChipRect(0).y + 47);
+    }
+
+    var hintY = distChipRect(0).y + 36;
+    ctx.fillStyle = 'rgba(163,183,206,.95)';
+    ctx.font = '600 11.5px system-ui,sans-serif';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(isTrapTool ? '点方块挂机关 · 点空地放地面' : '左键放置 · 右键删除', PAL.x, hintY);
+    if (tool.kind !== 'trap' || tool.type !== 'mover') {
+      ctx.fillStyle = 'rgba(140,160,182,.9)';
+      ctx.font = '11px system-ui,sans-serif';
+      ctx.fillText('Z 切方位 · F 切弹射 · E 退出', PAL.x, hintY + 17);
+    }
+
+    // 底部「操作说明」按钮 + 展开内容
+    var hbtn = helpBtnRect();
+    ctx.fillStyle = helpOpen ? 'rgba(76,141,255,.28)' : 'rgba(255,255,255,.06)';
+    roundRect(hbtn.x, hbtn.y, hbtn.w, hbtn.h, 5);
+    ctx.fill();
+    ctx.strokeStyle = helpOpen ? 'rgba(130,185,255,.9)' : 'rgba(140,170,210,.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = helpOpen ? '#eaf2ff' : '#b9c7d9';
+    ctx.font = '10px system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(helpOpen ? '操作说明 ▾' : '操作说明 ▸', hbtn.x + hbtn.w / 2, hbtn.y + hbtn.h / 2);
+    ctx.textAlign = 'left';
+
+    if (helpOpen) {
+      var lines = [
+        '左键放置 · 右键删除',
+        '数字键 1-9 切换工具',
+        'Z 切方位 · F 切弹射',
+        'E 切换编辑 / 游玩',
+        'Ctrl+Z 撤回 · Ctrl+Y 恢复'
+      ];
+      ctx.fillStyle = 'rgba(206,224,246,.95)';
+      ctx.font = '11.5px system-ui,sans-serif';
+      for (var li = 0; li < lines.length; li++) {
+        ctx.fillText(lines[li], PAL.x, hbtn.y - 96 + li * 19);
+      }
+    }
+
+    // 悬停：先标出窄条的挂载面，再画幽灵
+    var hb = blockInCell(hover.col, hover.row);
+    if (hb && hb.size === 'bar' && isTrapTool) {
+      var br = blockRect(hb);
+      ctx.strokeStyle = 'rgba(255,210,120,.95)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (activeMount === 'top') {
+        ctx.moveTo(br.x, br.y - 1);
+        ctx.lineTo(br.x + br.w, br.y - 1);
+      } else if (activeMount === 'left') {
+        ctx.moveTo(br.x - 1, br.y);
+        ctx.lineTo(br.x - 1, br.y + br.h);
+      } else {
+        ctx.moveTo(br.x + br.w + 1, br.y);
+        ctx.lineTo(br.x + br.w + 1, br.y + br.h);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /* 编辑器附加层：悬停预览 / 红色回弹（收起面板时同样生效） */
+  function drawEditorOverlay() {
+    if (hover.col >= 0 && hover.col < COLS && hover.row >= 0 && hover.row < ROWS) {
+      drawGhost(hover.col, hover.row);
+    }
+    if (deny.t > 0) {
+      ctx.strokeStyle = 'rgba(255,90,90,.95)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(deny.col * CELL + 1, deny.row * CELL + 1, CELL - 2, CELL - 2);
+    }
+  }
+
+  function drawToolIcon(tool, r, active) {
+    var cx = r.x + 14;
+    var cy = r.y + r.h / 2;
+    ctx.fillStyle = active ? '#9cc2ff' : '#7e8ea3';
+
+    if (tool.kind === 'block') {
+      var def = BLOCKS[tool.size];
+      var iw = Math.max(8, def.w * 0.2);
+      var ih = Math.max(8, def.h * 0.2);
+      ctx.fillRect(cx - iw / 2, cy - ih / 2, iw, ih);
+    } else if (tool.type === 'spike') {
+      ctx.beginPath();
+      ctx.moveTo(cx - 7, cy + 5);
+      ctx.lineTo(cx, cy - 6);
+      ctx.lineTo(cx + 7, cy + 5);
+      ctx.closePath();
+      ctx.fill();
+    } else if (tool.type === 'spring') {
+      ctx.fillRect(cx - 8, cy + 2, 16, 3);
+      ctx.fillRect(cx - 5, cy - 5, 10, 3);
+    } else if (tool.kind === 'marker') {
+      if (tool.marker === 'start') {
+        ctx.strokeStyle = active ? '#9cc2ff' : '#7e8ea3';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 2, 6, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillRect(cx - 6, cy - 7, 2, 14);
+        ctx.beginPath();
+        ctx.moveTo(cx - 4, cy - 7);
+        ctx.lineTo(cx + 7, cy - 4);
+        ctx.lineTo(cx - 4, cy - 1);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {
+      ctx.fillRect(cx - 8, cy, 16, 3);
+    }
+  }
+
+  function drawGhost(col, row) {
+    var tool = TOOLS[activeTool] || TOOLS[0];
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    if (tool.kind === 'block') {
+      var rect = blockRect({ col: col, row: row, size: tool.size });
+      ctx.fillStyle = '#7fe0c0';
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    } else if (tool.type === 'mover') {
+      var startX = col * CELL;
+      var py = row * CELL + 48;
+
+      if (!activeMoverDir) {
+        // 还没选方向：只标起点，提示先选方向
+        ctx.fillStyle = 'rgba(79,209,255,.85)';
+        ctx.fillRect(startX + 1, py, CELL - 2, 16);
+      } else {
+        var sign = activeMoverDir === 'left' ? -1 : 1;
+        var endX = Math.max(0, Math.min(MAP - CELL, startX + sign * activeMoverRange * CELL));
+        var bx = Math.min(startX, endX);
+        var bw = Math.abs(endX - startX) + CELL;
+
+        // 规划路径：浅色填充 + 虚线边框
+        ctx.globalAlpha = 0.16;
+        ctx.fillStyle = '#4fd1ff';
+        ctx.fillRect(bx, py, bw, 16);
+        ctx.globalAlpha = 0.95;
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(120,220,255,.95)';
+        ctx.strokeRect(bx + 0.5, py + 0.5, bw - 1, 15);
+        ctx.setLineDash([]);
+
+        // 起点处的平台本体
+        ctx.fillStyle = 'rgba(79,209,255,.9)';
+        ctx.fillRect(startX + 1, py, CELL - 2, 16);
+
+        // 方向箭头
+        ctx.fillStyle = 'rgba(140,230,255,.95)';
+        var ax = endX + (sign > 0 ? CELL - 8 : 8);
+        ctx.beginPath();
+        ctx.moveTo(ax, py + 8);
+        ctx.lineTo(ax - sign * 8, py + 3);
+        ctx.lineTo(ax - sign * 8, py + 13);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (tool.kind === 'marker') {
+      if (tool.marker === 'start') {
+        // 起点预览：绿色圆环
+        ctx.strokeStyle = 'rgba(120,230,180,.95)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(col * CELL + 32, row * CELL + 60, 20, 6, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(120,230,180,.9)';
+        ctx.beginPath();
+        ctx.moveTo(col * CELL + 32, row * CELL + 44);
+        ctx.lineTo(col * CELL + 24, row * CELL + 56);
+        ctx.lineTo(col * CELL + 40, row * CELL + 56);
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // 终点预览：金色小旗
+        ctx.strokeStyle = 'rgba(255,210,120,.95)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(col * CELL + 24, row * CELL + 58);
+        ctx.lineTo(col * CELL + 24, row * CELL + 20);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,210,120,.95)';
+        ctx.beginPath();
+        ctx.moveTo(col * CELL + 24, row * CELL + 20);
+        ctx.lineTo(col * CELL + 46, row * CELL + 28);
+        ctx.lineTo(col * CELL + 24, row * CELL + 36);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (tool.kind === 'trap') {
+      var pv = previewTrap(tool.type, col, row, activeMount);
+      if (pv) {
+        var fake = { type: tool.type, mount: activeMount, x: pv.rect.x, y: pv.rect.y, w: pv.rect.w, h: pv.rect.h };
+        if (tool.type === 'spike') drawSpikeTrap(fake);
+        else if (tool.type === 'spring') drawSpringTrap(fake);
+      }
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = drag ? 'rgba(255,210,120,.9)' : 'rgba(150,200,255,.55)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(col * CELL + 0.5, row * CELL + 0.5, CELL - 1, CELL - 1);
+  }
+
+  /* 可达路径提示：10% 绿色填充 + 深绿虚线边框（与实体方块明确区分） */
+  function drawReachTint() {
+    if (!startCell) return;
+    var set = reachableSet(startCell);
+
+    ctx.save();
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        var x = c * CELL;
+        var y = r * CELL;
+
+        if (set[c + ',' + r]) {
+          ctx.globalAlpha = 0.10;
+          ctx.fillStyle = '#3ddc84';
+          ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+
+          ctx.globalAlpha = 0.92;
+          ctx.setLineDash([4, 3]);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = '#1f7a4d';
+          ctx.strokeRect(x + 2.5, y + 2.5, CELL - 5, CELL - 5);
+          ctx.setLineDash([]);
+        } else {
+          ctx.globalAlpha = 0.05;
+          ctx.fillStyle = '#8fa3b8';
+          ctx.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  /* 终点放置失败：被拒绝的格子标红（仅编辑模式） */
+  function drawGoalFail() {
+    if (!goalFail || !editorMode) return;
+
+    ctx.strokeStyle = 'rgba(255,90,90,.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(goalFail.col * CELL + 1, goalFail.row * CELL + 1, CELL - 2, CELL - 2);
+  }
+
+  function render() {
+    drawGrid();
+    drawTiles();
+    drawBlocks();
+
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type === 'spike') drawSpikeTrap(t);
+      else if (t.type === 'spring') drawSpringTrap(t);
+    }
+
+    drawPlatforms();
+    if (editorMode) {
+      if (showReachPath && goalTint && isGoalToolActive()) drawReachTint();
+      drawGoalFail();
+    }
+    drawMarkers();
+    if (startCell) {                         // 没有起点 = 角色还没出生，不绘制
+      var drawCount = gameMode === 'solo' ? 1 : players.length;
+      for (var pi = 0; pi < drawCount; pi++) drawPlayer(players[pi]);
+      if (!editorMode) {
+        drawComboWarnings();
+        drawWinner();
+      }
+    }
+    drawTrapTips();
+    if (editorMode) {
+      drawEditor();
+      drawEditorOverlay();
+    }
+  }
+
+  /* 机关即时提示：飘在机关上方，2 秒淡出，不压住机关本体 */
+  function drawTrapTips() {
+    if (!trapTips.length) return;
+    ctx.save();
+    for (var i = 0; i < trapTips.length; i++) {
+      var tip = trapTips[i];
+      if (tip.t <= 0) continue;
+      ctx.globalAlpha = Math.min(1, tip.t * 1.6);
+      ctx.font = '600 11px system-ui,sans-serif';
+      var w = ctx.measureText(tip.text).width + 14;
+      var h = 20;
+      var x = Math.max(4, Math.min(MAP - w - 4, tip.x - w / 2));
+      var y = tip.y - h - 6;
+      if (y < 4) y = tip.y + CELL + 6;
+      ctx.fillStyle = 'rgba(9,14,21,.86)';
+      roundRect(x, y, w, h, 6);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(120,170,230,.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#dbe8f7';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(tip.text, x + 7, y + h / 2);
+    }
+    ctx.restore();
+  }
+
+  /* ---------- HUD ---------- */
+  function heldText() {
+    var out = [];
+    if (held.has('a')) out.push('A');
+    if (held.has('d')) out.push('D');
+    if (held.has('arrowleft')) out.push('←');
+    if (held.has('arrowright')) out.push('→');
+    return out.length ? out.join(' ') : '—';
+  }
+
+  /* 同步「模式 / 画布尺寸」按钮的选中态与提示 */
+  /* 未解锁阶段隐藏右侧所有信息区（机关数/进度/模板/HP/帧率/按键表…） */
+  function hideHudInfo(hide) {
+    var ids = ['hud-info', 'hud-debug', 'hud-legend', 'hud-reach', 'hud-note'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) el.hidden = !!hide;
+    }
+  }
+
+  function syncSegButtons() {
+    if (shareMode) {                              // 只读游玩态：隐藏全部编辑入口
+      if (elSizeBlock) elSizeBlock.hidden = true;
+      if (elModeSeg && elModeSeg.parentNode) elModeSeg.parentNode.hidden = true;
+      if (elMapModeBlock) elMapModeBlock.hidden = true;
+      if (elEditTools) elEditTools.hidden = true;
+      if (elReachChk && elReachChk.parentNode) elReachChk.parentNode.hidden = true;
+      if (elSemiHint) elSemiHint.hidden = true;
+      if (elBlankHint) elBlankHint.hidden = true;
+      if (elSharePanel) elSharePanel.hidden = false;
+      return;
+    }
+    // 开工三步未完成：右栏只留引导卡片，其它面板全部收起
+    var tutorialLock = !editorUnlocked && !isEditLocked();
+    if (tutorialLock) {
+      if (elSizeBlock) elSizeBlock.hidden = true;
+      if (elModeSeg && elModeSeg.parentNode) elModeSeg.parentNode.hidden = true;
+      if (elMapModeBlock) elMapModeBlock.hidden = true;
+      if (elEditTools) elEditTools.hidden = true;
+      if (elReachChk && elReachChk.parentNode) elReachChk.parentNode.hidden = true;
+      if (elSemiHint) elSemiHint.hidden = true;
+      if (elBlankHint) elBlankHint.hidden = true;
+      if (elSharePanel) elSharePanel.hidden = true;
+      hideHudInfo(true);
+      return;
+    }
+    hideHudInfo(false);
+
+    if (elSharePanel) elSharePanel.hidden = true;
+    if (elMapModeBlock) elMapModeBlock.hidden = false;   // 退出分享后恢复地图模式栏
+    if (elSizeBlock) elSizeBlock.hidden = true;   // 砍：只保留 10×10
+
+    var duoAllowed = COLS !== 6;                 // 6×6 只支持单人
+    if (elModeSeg) {
+      elModeSeg.hidden = true;
+      if (elModeSeg.parentNode) elModeSeg.parentNode.hidden = true;   // 砍：不暴露单人/双人开关
+      if (typeof elModeSeg.querySelectorAll === 'function') {
+        var mb = elModeSeg.querySelectorAll('button');
+        for (var i = 0; i < mb.length; i++) {
+          mb[i].classList.toggle('on', mb[i].getAttribute('data-mode') === gameMode);
+        }
+      }
+    }
+
+    if (elMapModeSeg && typeof elMapModeSeg.querySelectorAll === 'function') {
+      var modes = modeList(COLS);
+      var mbtns = elMapModeSeg.querySelectorAll('button');
+      for (var m = 0; m < mbtns.length; m++) {
+        var mm = mbtns[m].getAttribute('data-mapmode');
+        mbtns[m].hidden = modes.indexOf(mm) < 0 || mm === 'semi';   // 砍：半官图入口隐藏
+        mbtns[m].classList.toggle('on', mm === mapMode);
+      }
+    }
+
+    if (elSizeBlock) elSizeBlock.hidden = true;   // 砍：只做 10×10    // 尺寸入口常驻显示
+
+    if (elSemiHint) elSemiHint.hidden = !(mapMode === 'semi' && (!startCell || !goalCell));
+    if (elBlankHint) elBlankHint.hidden = !(mapMode === 'blank' && (!startCell || !goalCell));
+
+    var toolsOn = editorMode && !isEditLocked();    // 官图锁定不给编辑工具
+    if (elEditTools) elEditTools.hidden = !toolsOn;
+    if (!toolsOn && elClearConfirm) elClearConfirm.hidden = true;
+
+    if (elSizeSeg && typeof elSizeSeg.querySelectorAll === 'function') {
+      var sb = elSizeSeg.querySelectorAll('button');
+      for (var j = 0; j < sb.length; j++) {
+        sb[j].classList.toggle('on', parseInt(sb[j].getAttribute('data-size'), 10) === COLS);
+      }
+    }
+    if (elSizeHint) {
+      elSizeHint.textContent = COLS === 6
+        ? '6×6 标准跨端尺寸，可分享至手机'
+        : '10×10 电脑端专属，不可分享至手机';
+    }
+  }
+
+  function updateHud() {
+    var p1 = players[0];
+    var p2 = players[1];
+
+    elMode.textContent = editorMode ? '编辑' : (gameMode === 'solo' ? '单人' : '双人');
+    elMode.classList.toggle('edit', editorMode);
+    elBudget.textContent = trapCount() + '/' + budgetMax;
+    syncStartCard();             // 开工三步：随 UI 刷新同步勾选
+    if (elShareState) {
+      elShareState.textContent = mapVerified
+        ? '已通关，可生成分享链接'
+        : '未通关：分享前请亲自通关一次';
+      elShareState.style.color = mapVerified ? '#57d38c' : '#8fa3b8';
+    }
+    elBudget.classList.toggle('warn', trapCount() >= budgetMax);
+
+    var st = statusText();
+    elProgress.textContent = st;
+    elProgress.classList.toggle('on', st === '可试玩');
+    elProgress.classList.toggle('warn', st !== '可试玩');
+
+    if (elReach) {
+      var note = reachNoteText();
+      elReach.textContent = note;
+      elReach.classList.toggle('ok', st === '可试玩');
+      elReach.classList.toggle('warn', st === '不可试玩');
+    }
+    syncSegButtons();
+    elTpl.textContent = mapMode === 'official'
+      ? (currentOfficial + 1) + '/' + officialList(COLS).length + ' ' + OFFICIAL[officialList(COLS)[currentOfficial]].name
+      : (currentTemplate < 0
+        ? '空白'
+        : (templateOrderInSize() + 1) + '/' + sizeTemplates(COLS).length + ' ' + TEMPLATES[currentTemplate].name);
+    elState.textContent = editorMode ? '—'
+      : winner ? (gameMode === 'solo' ? '通关成功' : winner.name + ' 获胜')
+      : p1.launchTimer > 0 ? 'P1 弹射'
+      : p1.onGround ? (p1.riding ? 'P1 平台' : 'P1 地面') : 'P1 空中';
+    elState.classList.toggle('on', !editorMode && !winner && p1.onGround);
+
+    var shown = Math.round(p1.hp);
+    elHp.textContent = gameMode === 'duo' ? shown + ' / ' + Math.round(p2.hp) : String(shown);
+    elHp.classList.toggle('hp-high', shown > 50 && p2.hp > 50);
+    elHp.classList.toggle('hp-mid', (shown > 25 && shown <= 50) || (p2.hp > 25 && p2.hp <= 50));
+    elHp.classList.toggle('hp-low', shown <= 25 || p2.hp <= 25);
+
+    elApex.textContent = p1.lastApex > 0 ? Math.round(p1.lastApex) + ' px' : '--';
+    elVel.textContent = Math.round(p1.vx) + ', ' + Math.round(p1.vy);
+
+    if (fps > 0) {
+      elFps.textContent = fps.toFixed(0);
+      elFps.classList.toggle('warn', fps < 55);
+    }
+    if (sps > 0) elSps.textContent = Math.round(sps) + '/s';
+
+    elPos.textContent = Math.round(p1.x) + ',' + Math.round(p1.y) +
+      ' · ' + Math.floor((p1.x + BODY_W / 2) / CELL) + ',' +
+      Math.floor((p1.y + BODY_H / 2) / CELL);
+    elKeys.textContent = heldText();
+    elNote.textContent = editorMode
+      ? '1-8 选类型 · Z 切方位 · F 弹射 · 左键放置 · 右键删除'
+      : 'P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%';
+  }
+
+  /* ---------- 主循环 ---------- */
+  function frame(ts) {
+    if (!lastTs) lastTs = ts;
+
+    var raw = (ts - lastTs) / 1000;
+    lastTs = ts;
+    if (!(raw > 0)) raw = 0;
+    var dtReal = Math.min(raw, 0.25);
+
+    acc += dtReal;
+    var n = 0;
+    while (acc >= STEP) {
+      if (n >= MAX_STEPS_PER_FRAME) { acc = 0; break; }
+      update(STEP);
+      acc -= STEP;
+      n++;
+      stepCount++;
+    }
+
+    frameCount++;
+    hudTimer += dtReal;
+    if (hudTimer >= 0.25) {
+      fps = frameCount / hudTimer;
+      sps = stepCount / hudTimer;
+      frameCount = 0;
+      stepCount = 0;
+      hudTimer = 0;
+      updateHud();
+    }
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- 测试/调试接口 ---------- */
+  window.__weida = {
+    snapshot: function () {
+      return {
+        template: currentTemplate,
+        templateName: mapMode === 'official'
+          ? OFFICIAL[officialList(COLS)[currentOfficial]].name
+          : (currentTemplate < 0 ? '空白' : TEMPLATES[currentTemplate].name),
+        size: COLS,
+        mobile: MOBILE,
+        shareable: COLS === 6,
+        mapMode: mapMode,
+        verified: mapVerified,
+        editLocked: isEditLocked(),
+        showReach: showReachPath,
+        paletteCollapsed: paletteCollapsed,
+        templateOrder: templateOrderInSize() + 1,
+        templateCount: sizeTemplates(COLS).length,
+        grid: grid,
+        traps: traps,
+        blocks: blocks.map(function (b) {
+          var r = blockRect(b);
+          return { col: b.col, row: b.row, size: b.size, x: r.x, y: r.y, w: r.w, h: r.h };
+        }),
+        platforms: platforms.map(function (p) {
+          return { x: p.x, y: p.y, w: p.w, h: p.h, dir: p.dir, minX: p.minX, maxX: p.maxX };
+        }),
+        spawn: { x: spawnPoint.x, y: spawnPoint.y },
+        start: startCell ? { col: startCell.col, row: startCell.row } : null,
+        goal: goalCell ? { col: goalCell.col, row: goalCell.row } : null,
+        status: statusText(),
+        reachNote: reachNoteText(),
+        missing: missingCount(),
+        goalReachable: canReachGoal(),
+        goalFail: goalFail ? {
+          col: goalFail.col,
+          row: goalFail.row,
+          reachCount: Object.keys(goalFail.reach).length
+        } : null,
+        goalTint: goalTint && editorMode && isGoalToolActive(),
+        player: {
+          x: player.x, y: player.y,
+          vx: player.vx, vy: player.vy,
+          onGround: player.onGround,
+          riding: player.riding ? platforms.indexOf(player.riding) : -1
+        },
+        players: players.map(function (p) {
+          return {
+            id: p.id, name: p.name,
+            x: p.x, y: p.y, vx: p.vx, vy: p.vy,
+            hp: p.hp, onGround: p.onGround,
+            invincible: p.invincible, stun: p.stun,
+            launchTimer: p.launchTimer, launchDir: p.launchDir,
+            facing: p.facing, wins: p.wins,
+            spawnProtect: p.spawnProtect,
+            jumpBuffer: p.jumpBuffer, coyote: p.coyote
+          };
+        }),
+        mode: gameMode,
+        spawnSlots: spawnSlots.map(function (s) { return { x: s.x, y: s.y }; }),
+        spawnProtect: [players[0].spawnProtect, players[1].spawnProtect],
+        firstSpawn: isFirstSpawnRound,
+        safeFrames: spawnSafeFrameCount,
+        winner: winner ? winner.name : null,
+        combo: comboQueue.map(function (c) {
+          return { phase: c.phase, t: c.t, dmg: c.dmg, victim: c.victim.name };
+        }),
+        boxes: {
+          body: [BODY_W, BODY_H],
+          hurt: [HURT_W, HURT_H],
+          push: [PUSH_W, PUSH_H]
+        },
+        hp: player.hp,
+        invincible: player.invincible,
+        apex: player.lastApex,
+        jumpHeight: JUMP_HEIGHT,
+        reachUpCells: REACH_UP_CELLS,
+        stepTol: STEP_TOL,
+        lastStepRise: player.lastStepRise,
+        launch: { timer: player.launchTimer, dir: player.launchDir },
+        editorMode: editorMode,
+        activeTool: activeTool,
+        activeMount: activeMount,
+        activeSpringDist: activeSpringDist,
+        activeMoverRange: activeMoverRange,
+        activeMoverDir: activeMoverDir,
+        tools: TOOLS.map(function (t) { return t.label; }),
+        budget: { count: trapCount(), max: budgetMax, min: BUDGET_MIN, maxAllowed: BUDGET_MAX },
+        drag: drag ? { kind: drag.kind, index: drag.index } : null,
+        trapBoxes: traps.map(function (t) {
+          var b = trapBox(t);
+          return { type: t.type, x: b.x, y: b.y, w: b.w, h: b.h };
+        }),
+        showBoxes: showBoxes
+      };
+    },
+    debugPlace: function (col, row, who) {
+      var p = players[who === 1 ? 1 : 0];
+      p.x = col * CELL + (CELL - BODY_W) / 2;
+      p.y = row * CELL - BODY_H;
+      p.vx = 0;
+      p.vy = 0;
+      p.onGround = true;
+      p.riding = null;
+      p.stepVisual = 0;
+      p.launchTimer = 0;
+      p.stepUsed = false;
+      p.jumpTrack.active = false;
+    },
+    setPos: function (id, x, y) {
+      var p = players[id === 1 ? 1 : 0];
+      p.x = x;
+      p.y = y;
+      p.vx = 0;
+      p.vy = 0;
+      p.onGround = true;
+      p.riding = null;
+    },
+    goalOverlap: function (id) {
+      return goalOverlapArea(players[id === 1 ? 1 : 0]);
+    },
+    setEditor: function (on) {
+      editorMode = !!on;
+      if (editorMode) { resetPlayersForEditor(); showEditHint(); }
+      if (editorMode) paletteCollapsed = COLS === 6;
+      if (!editorMode) {
+        goalFail = null;
+        goalTint = false;
+      }
+      clearKeys();
+      updateHud();
+    },
+    togglePalette: function (on) {
+      paletteCollapsed = on === undefined ? !paletteCollapsed : !!on;
+      return paletteCollapsed;
+    },
+    /* §5.5 自测接口 */
+    resetPlayer: function (id, reason) {
+      return resetPlayer(id | 0, reason);
+    },
+    setMode: function (m) {
+      return setMode(m);
+    },
+    setMapMode: function (m) {
+      return setMapMode(m);
+    },
+    setCanvasSize: function (n) {
+      applyCanvasSize(n | 0);
+      return COLS;
+    },
+    placeBlock: function (col, row, size) {
+      return placeBlock(col, row, size);
+    },
+    clearBlocks: function () {
+      blocks = [];
+      rebuildSolids();
+    },
+    placeTrap: function (type, col, row) {
+      var r = placeTrapAt(type, col, row, arguments[3] || arguments[4]);
+      updateHud();
+      return r;
+    },
+    removeAt: function (col, row) {
+      var r = removeAt(col, row);
+      updateHud();
+      return r;
+    },
+    moveTrap: function (index, col, row) {
+      var r = moveObject({ kind: 'trap', index: index }, col, row);
+      updateHud();
+      return r;
+    },
+    setTool: function (i) {
+      activeTool = Math.max(0, Math.min(TOOLS.length - 1, i | 0));
+      goalTint = isGoalToolActive();
+    },
+    setMount: function (m) {
+      for (var i = 0; i < MOUNTS.length; i++) {
+        if (MOUNTS[i][0] === m) activeMount = m;
+      }
+    },
+    setSpringDist: function (d) {
+      activeSpringDist = d === 1 ? 1 : 2;
+    },
+    setMoverRange: function (n) {
+      activeMoverRange = n === 1 ? 1 : 2;
+    },
+    setMoverDir: function (d) {
+      activeMoverDir = d === 'left' ? 'left' : (d === 'right' ? 'right' : null);
+    },
+    placeMarker: function (kind, col, row) {
+      var r = placeMarker(kind, col, row);
+      updateHud();
+      return r;
+    },
+    reachable: function (col, row) {
+      return !!reachableSet(startCell)[col + ',' + row];
+    },
+    reachDamage: function (col, row) {      var info = reachableFrom(startCell);
+      var k = col + ',' + row;
+      if (!info.seen[k]) return null;
+      return info.cost[k] || 0;
+    },
+    simulate: function (x, y, dir, jump) {
+      return simulateMove(x, y, dir | 0, !!jump);
+    },
+    goalDamage: function () {
+      return goalReachDamage();
+    },
+    audit: function () {
+      return auditLevel();
+    },
+    shareUrl: function () { return buildShareUrl(); },
+    sharePayload: function () { return buildSharePayload(); },
+    enterShared: function (size, data) { enterShareMode(size, data); },
+    remix: function () { exitShareToEditor(); },
+    isShared: function () { return shareMode; },
+    verifiedAt: function () { return mapVerifiedAt; },
+    parseShare: function (h) { var old = location.hash; location.hash = h || ''; var r = parseShareHash(); location.hash = old; return r; },
+    toggleHelp: function (on) {
+      helpOpen = on === undefined ? !helpOpen : !!on;
+      return helpOpen;
+    },
+    undo: function () { return undoEdit(); },
+    redo: function () { return redoEdit(); },
+    clearCanvas: function () { return clearCanvas(); },
+    /* 导出当前地图（用于把自制关卡原样交给开发） */
+    exportMap: function () {
+      return {
+        size: COLS,
+        start: startCell ? { col: startCell.col, row: startCell.row } : null,
+        goal: goalCell ? { col: goalCell.col, row: goalCell.row } : null,
+        blocks: blocks.map(function (b) { return { col: b.col, row: b.row, size: b.size }; }),
+        traps: traps.map(function (t) {
+          var o = { type: t.type, col: t.col, row: t.row };
+          if (t.dir) o.dir = t.dir;
+          if (t.range) o.range = t.range;
+          if (t.dist) o.dist = t.dist;
+          if (t.mount) o.mount = t.mount;
+          return o;
+        }),
+        rows: grid.map(function (r) {
+          return r.map(function (v) { return v ? '#' : '.'; }).join('');
+        })
+      };
+    },
+    difficulty: function () {
+      return {
+        walkOnly: walkOnlyReachesGoal(),
+        minMoves: minMovesToGoal(),
+        damage: goalReachDamage()
+      };
+    },
+    setHover: function (col, row) {
+      hover.col = col | 0;
+      hover.row = row | 0;
+    },
+    setBudget: function (n) {
+      budgetMax = Math.max(BUDGET_MIN, Math.min(BUDGET_MAX, n | 0));
+      updateHud();
+    },
+    clearTraps: function () {
+      traps = [];
+      buildPlatforms();
+      syncTemplate();
+    }
+  };
+
+  /* ---------- 启动 ---------- */
+  layout();
+  window.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', layout);
+
+  var shared = parseShareHash();
+  if (elMobileBlock) elMobileBlock.hidden = true;
+  if (shared && shared.error) {
+    elMobileBlock.hidden = true;
+    showToast('分享链接无效或已损坏，已回到 10×10 编辑器');
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    loadTemplate(0, true);
+  } else if (shared) {
+    if (IS_MOBILE_UA) {
+      loadTemplate(0, true);                    // 仅初始化内部状态，被遮罩完全覆盖
+      elMobileBlock.hidden = false;             // 移动端：遮罩拦截，不可游玩
+    } else {
+      enterShareMode(shared.size, shared.data); // 桌面端：只读游玩
+    }
+  } else {
+    loadTemplate(0, true);
+  }
+  maybeShowGuide();
+  updateHud();
+  setTimeout(function () { maybeShowStarter(); }, 300);
+  requestAnimationFrame(frame);
+
+  console.info('[step2-4] jump ' + JUMP_HEIGHT + 'px · stepTol ' + STEP_TOL +
+    ' · reachUp ' + REACH_UP_CELLS + ' 格 · tools ' + TOOLS.length + ' · budget ' + budgetMax);
+})();
+</script>
+</body></html>
