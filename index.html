@@ -331,6 +331,26 @@
     transition:opacity .18s ease;
   }
   .flash.on{ opacity:1; }
+  .home{
+    position:fixed; inset:0; z-index:80;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(900px 600px at 50% 30%, #1a2a3c 0%, #0b0f15 60%, #06090d 100%);
+  }
+  .home-box{ display:flex; flex-direction:column; align-items:center; gap:14px; padding:0 20px; }
+  .home-title{ margin:0; font-size:42px; font-weight:800; letter-spacing:.18em; color:#eaf2ff; }
+  .home-sub{ margin:0 0 10px; font-size:13px; color:#8fa3b8; }
+  .home-btns{ display:flex; gap:16px; }
+  .home-btns button{
+    display:flex; flex-direction:column; gap:4px; min-width:180px;
+    padding:18px 22px; border:0; border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,.06); color:#eaf2ff;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.3);
+    text-align:left; transition:background .15s ease, transform .1s ease;
+  }
+  .home-btns button:hover{ background:rgba(76,141,255,.2); transform:translateY(-2px); }
+  .home-btns b{ font-size:19px; }
+  .home-btns em{ font-style:normal; font-size:11.5px; color:#8fa3b8; }
+
   /* ---------- 手机端布局 ---------- */
   #mobile-bar{ display:none; }
   @media (max-width: 900px){
@@ -507,6 +527,17 @@
       <button type="button" class="starter" data-kind="steps">阶梯<em>三段台阶，跳上去</em></button>
       <button type="button" class="starter" data-kind="trap">带机关<em>弹簧 + 尖刺</em></button>
       <button type="button" class="starter" data-kind="blank">纯空白<em>从零开始搭</em></button>
+    </div>
+  </div>
+</div>
+
+<div class="home" id="home">
+  <div class="home-box">
+    <h1 class="home-title">WEIDA</h1>
+    <p class="home-sub">做一张坑图，发给朋友，看他破防</p>
+    <div class="home-btns">
+      <button type="button" id="home-edit"><b>编辑</b><em>做一张坑图发给朋友</em></button>
+      <button type="button" id="home-levels"><b>关卡</b><em>玩别人做好的图</em></button>
     </div>
   </div>
 </div>
@@ -1005,6 +1036,9 @@
   var elDotStart = document.getElementById('dot-start');
   var elDotGoal = document.getElementById('dot-goal');
   var elDotWin = document.getElementById('dot-win');
+  var elHome = document.getElementById('home');
+  var elHomeEdit = document.getElementById('home-edit');
+  var elHomeLevels = document.getElementById('home-levels');
   var elStarterModal = document.getElementById('starter-modal');
   var elStartCard = document.getElementById('start-card');
   var elStepStart = document.getElementById('step-start');
@@ -1292,7 +1326,7 @@
     for (var i = 0; i < OFFICIAL.length; i++) {
       if (OFFICIAL[i].size === size) out.push(i);
     }
-    out = out.slice(0, 1);          // 砍：官图只保留 1 张做展示
+    out = out.slice(0, 3);          // 关卡入口：接入三张官图
     out.sort(function (a, b) {
       var ra = typeof OFFICIAL[a].rank === 'number' ? OFFICIAL[a].rank : a;
       var rb = typeof OFFICIAL[b].rank === 'number' ? OFFICIAL[b].rank : b;
@@ -1420,6 +1454,27 @@
       elStartCardOk.classList.toggle('ready', all);
       if (elStartCardOk.disabled === all) elStartCardOk.disabled = !all;
     }
+  }
+
+  /* ---------- 首页双入口 ---------- */
+  function enterEdit() {
+    if (elHome) elHome.hidden = true;
+    if (COLS !== 10) setCanvasGeometry(10);
+    setMapMode('blank');
+    editorMode = true;
+    editorUnlocked = false;
+    if (gameMode !== 'solo') setMode('solo');    // 编辑默认单人
+    maybeShowStarter();
+    syncSegButtons();
+    updateHud();
+  }
+
+  function enterLevels() {
+    if (elHome) elHome.hidden = true;
+    if (COLS !== 10) setCanvasGeometry(10);
+    setMapMode('official');
+    syncSegButtons();
+    updateHud();
   }
 
   /* ---------- 起步模板（选项 C）：给用户一张能玩的底图 ---------- */
@@ -2753,6 +2808,13 @@
     refreshTouchLayout();
     syncMobileBar();
   });
+
+  if (elHomeEdit && typeof elHomeEdit.addEventListener === 'function') {
+    elHomeEdit.addEventListener('click', enterEdit);
+  }
+  if (elHomeLevels && typeof elHomeLevels.addEventListener === 'function') {
+    elHomeLevels.addEventListener('click', enterLevels);
+  }
 
   if (elStarterModal && typeof elStarterModal.addEventListener === 'function') {
     var sbtns = elStarterModal.querySelectorAll('.starter');
@@ -5631,7 +5693,7 @@
   }
   maybeShowGuide();
   updateHud();
-  setTimeout(function () { maybeShowStarter(); }, 300);
+  if (elHome) elHome.hidden = !!(shared && !shared.error);   // 分享链接直达游玩，不走首页
   requestAnimationFrame(frame);
 
   console.info('[step2-4] jump ' + JUMP_HEIGHT + 'px · stepTol ' + STEP_TOL +
