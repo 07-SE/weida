@@ -26,6 +26,7 @@
     user-select:none;
   }
 
+  html,body{ overflow-x:hidden; }
   #app{
     height:100vh;
     height:100dvh;
@@ -34,6 +35,26 @@
     justify-content:center;
     gap:16px;
     padding:24px;
+  }
+
+  #stage{ width:100%; height:auto; aspect-ratio:1 / 1; }
+    #game{ touch-action:none; }
+    .hud{ width:100%; max-height:none; order:2; }
+    #mobile-bar{
+      display:grid; order:3; grid-template-columns:repeat(4, 1fr); gap:8px;
+      position:sticky; bottom:0; z-index:30;
+      padding:8px; border-radius:12px;
+      background:rgba(17,24,34,.94);
+      box-shadow:inset 0 0 0 1px rgba(120,170,230,.22);
+    }
+    #mobile-bar button{
+      min-height:46px; border:0; border-radius:10px; cursor:pointer;
+      background:rgba(255,255,255,.08); color:#eaf2ff;
+      font-size:13px; font-weight:700;
+    }
+    #mobile-bar button.on{ background:#4c8dff; color:#fff; }
+    #mobile-bar button.play{ background:#ffd166; color:#221704; }
+    #mobile-bar button.undo{ background:rgba(255,255,255,.14); }
   }
 
   #stage{
@@ -220,6 +241,7 @@
     backdrop-filter:blur(2px);
   }
   .modal{
+    max-width:92vw;
     width:340px; max-width:88vw;
     padding:18px 18px 16px; border-radius:12px;
     background:#111a24;
@@ -309,6 +331,14 @@
     transition:opacity .18s ease;
   }
   .flash.on{ opacity:1; }
+  /* ---------- 手机端布局 ---------- */
+  #mobile-bar{ display:none; }
+  @media (max-width: 900px){
+    #app{
+      flex-direction:column; align-items:stretch; justify-content:flex-start;
+      padding:8px; gap:8px; height:auto; min-height:100dvh;
+    }
+  
 </style>
 </head>
 <body>
@@ -455,6 +485,17 @@
     <p class="note" id="hud-note">P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%</p>
     <p class="flash" id="hud-flash">已复位双方</p>
   </aside>
+
+  <div id="mobile-bar">
+    <button type="button" data-tool="0">满格</button>
+    <button type="button" data-tool="1">矮扁</button>
+    <button type="button" data-tool="2">窄条</button>
+    <button type="button" data-tool="7">起点</button>
+    <button type="button" data-tool="8">终点</button>
+    <button type="button" class="undo" id="m-undo">撤回</button>
+    <button type="button" id="m-clear">清空</button>
+    <button type="button" class="play" id="m-play">试玩</button>
+  </div>
 </div>
 
 <div class="modal-mask" id="starter-modal" hidden>
@@ -2706,6 +2747,13 @@
       setMapMode(b.getAttribute('data-mapmode'));
     });
   }
+  refreshTouchLayout();
+  syncMobileBar();
+  window.addEventListener('resize', function () {
+    refreshTouchLayout();
+    syncMobileBar();
+  });
+
   if (elStarterModal && typeof elStarterModal.addEventListener === 'function') {
     var sbtns = elStarterModal.querySelectorAll('.starter');
     for (var si = 0; si < sbtns.length; si++) {
@@ -2817,6 +2865,12 @@
 
   var PAL = { x: 12, y: 48, colW: 82, rowH: 30, gap: 5 };
   var paletteCollapsed = false;     // 左侧机关面板是否收起
+  var touchLayout = false;          // 手机端窄屏：改用底部工具条
+  function refreshTouchLayout() {
+    touchLayout = window.innerWidth <= 900 || window.matchMedia('(max-width: 900px)').matches;
+    var bar = document.getElementById('mobile-bar');
+    if (bar) bar.hidden = !touchLayout;
+  }
   var pendingSize = 0;
   var mapVerified = false;          // 创作者是否已亲自通关认证
   var draftCache = {};              // 空白画布草稿缓存：b6 / b10
@@ -4572,6 +4626,7 @@
   }
 
   function drawEditor() {
+    if (touchLayout) return;        // 手机端用底部工具条，画布不再叠面板
     if (paletteCollapsed) {
       // 收起态：只留一个展开按钮，画布不再被遮挡
       var tr = palToggleRect();
@@ -5062,6 +5117,48 @@
     }
   }
 
+  /* 手机端工具条：选工具 / 撤回 / 清空 / 试玩 */
+  var mobileBarReady = false;
+  function syncMobileBar() {
+    var bar = document.getElementById('mobile-bar');
+    if (!bar) return;
+    var btns = bar.querySelectorAll('button[data-tool]');
+    for (var i = 0; i < btns.length; i++) {
+      var idx = parseInt(btns[i].getAttribute('data-tool'), 10);
+      btns[i].classList.toggle('on', idx === activeTool);
+    }
+    if (!mobileBarReady) {
+      mobileBarReady = true;
+      for (var j = 0; j < btns.length; j++) {
+        (function (btn) {
+          btn.addEventListener('click', function () {
+            if (!editorMode) { flash('先点「试玩」切回编辑'); return; }
+            activeTool = parseInt(btn.getAttribute('data-tool'), 10);
+            goalTint = isGoalToolActive();
+            flash('已选：' + TOOLS[activeTool].label);
+            updateHud();
+          });
+        })(btns[j]);
+      }
+      var undo = document.getElementById('m-undo');
+      if (undo) undo.addEventListener('click', function () { undoEdit(); });
+      var clr = document.getElementById('m-clear');
+      if (clr) clr.addEventListener('click', function () {
+        if (!editorMode) return;
+        clearCanvas();
+      });
+      var play = document.getElementById('m-play');
+      if (play) play.addEventListener('click', function () {
+        if (!editorMode && !startCell) { flash('先放一个起点'); return; }
+        editorMode = !editorMode;
+        if (editorMode) { winner = null; resetPlayersForEditor(); }
+        clearKeys();
+        flash(editorMode ? '进入编辑模式' : '退出编辑模式');
+        updateHud();
+      });
+    }
+  }
+
   function syncSegButtons() {
     if (shareMode) {                              // 只读游玩态：隐藏全部编辑入口
       if (elSizeBlock) elSizeBlock.hidden = true;
@@ -5121,6 +5218,7 @@
     if (elSemiHint) elSemiHint.hidden = !(mapMode === 'semi' && (!startCell || !goalCell));
     if (elBlankHint) elBlankHint.hidden = !(mapMode === 'blank' && (!startCell || !goalCell));
 
+    syncMobileBar();
     var toolsOn = editorMode && !isEditLocked();    // 官图锁定不给编辑工具
     if (elEditTools) elEditTools.hidden = !toolsOn;
     if (!toolsOn && elClearConfirm) elClearConfirm.hidden = true;
