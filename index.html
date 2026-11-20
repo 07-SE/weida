@@ -351,6 +351,14 @@
   .home-btns b{ font-size:19px; }
   .home-btns em{ font-style:normal; font-size:11.5px; color:#8fa3b8; }
 
+  .tut-hint{
+    position:absolute; left:50%; bottom:12px; transform:translateX(-50%); z-index:7;
+    padding:7px 14px; border-radius:999px;
+    background:rgba(255,209,102,.95); color:#221704;
+    font-size:12.5px; font-weight:700; white-space:nowrap;
+    box-shadow:0 8px 22px -6px rgba(255,209,102,.7);
+  }
+
   /* ---------- 手机端布局 ---------- */
   #mobile-bar{ display:none; }
   @media (max-width: 900px){
@@ -575,6 +583,18 @@
   </div>
 </div>
 
+<div class="tut-hint" id="tut-hint" hidden>起点终点已就绪 · 按 E 试玩通关</div>
+
+<div class="modal-mask" id="gate-done" hidden>
+  <div class="modal">
+    <p class="modal-title">开工三步已完成！</p>
+    <p class="modal-text">起点 ✓ 终点 ✓ 通关 ✓ —— 完整编辑器已为你解锁</p>
+    <div class="seg">
+      <button type="button" id="gate-done-ok">进入完整编辑</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-mask" id="share-modal" hidden>
   <div class="modal">
     <p class="modal-title">还不能分享</p>
@@ -590,6 +610,21 @@
   <div class="modal">
     <p class="modal-title">请用电脑打开</p>
     <p class="modal-text">本地图为 10×10 电脑端专属关卡，暂不支持移动端打开，请使用电脑访问</p>
+  </div>
+</div>
+
+<div class="modal-mask" id="share-send" hidden>
+  <div class="modal">
+    <p class="modal-title">发送给好友</p>
+    <p class="modal-text" style="color:#57d38c;">✓ 你已亲自通关本图</p>
+    <p class="modal-text">发给朋友时，用哪种方式玩：</p>
+    <div class="seg">
+      <button type="button" id="send-duo" class="on">双人合作</button>
+      <button type="button" id="send-solo">单人挑战</button>
+    </div>
+    <div class="seg">
+      <button type="button" id="send-go">生成链接</button>
+    </div>
   </div>
 </div>
 
@@ -1449,6 +1484,18 @@
     setStep(elStepWin, !!mapVerified);
 
     var all = startCardReady();
+    if (!all && !mapVerified && cardTicks.start && cardTicks.goal && !playPromptShown) {
+      var reach = true;
+      try { reach = canReachGoal(); } catch (e) {}
+      if (reach) {
+        playPromptShown = true;
+        var th = document.getElementById('tut-hint');
+        if (th) th.hidden = false;
+      }
+    }
+    var th2 = document.getElementById('tut-hint');
+    if (th2) th2.hidden = !(tutorialActive() && playPromptShown && !mapVerified);
+
     if (elStepsDone) elStepsDone.hidden = !all;
     if (elStartCardOk) {
       elStartCardOk.classList.toggle('ready', all);
@@ -1652,6 +1699,7 @@
         return o;
       }),
       rows: grid.map(function (r) { return r.map(function (v) { return v ? '#' : '.'; }).join(''); }),
+      mode: shareSendMode,
       meta: { clearedByAuthor: !!mapVerified, clearedAt: mapVerified ? mapVerifiedAt : 0 }
     };
   }
@@ -1691,6 +1739,9 @@
     refreshKeyHint();
     spawnTrapTips();
     if (!rulesSeen()) showShareRules();
+
+    if (data.mode === 'solo') setMode('solo');
+    else if (COLS === 10) setMode('duo');
 
     if (elShareInfo) {
       var cleared = !!(data.meta && data.meta.clearedByAuthor);
@@ -2825,6 +2876,19 @@
     }
   }
 
+  var elGateDone = document.getElementById('gate-done');
+  var elGateDoneOk = document.getElementById('gate-done-ok');
+  if (elGateDoneOk && typeof elGateDoneOk.addEventListener === 'function') {
+    elGateDoneOk.addEventListener('click', function () {
+      editorUnlocked = true;
+      if (elStartCard) elStartCard.hidden = true;
+      if (elGateDone) elGateDone.hidden = true;
+      syncSegButtons();
+      updateHud();
+      flash('完整编辑器已解锁');
+    });
+  }
+
   if (elStartCardOk && typeof elStartCardOk.addEventListener === 'function') {
     elStartCardOk.addEventListener('click', function () {
       if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
@@ -2854,14 +2918,32 @@
     elGuideStart.addEventListener('click', closeGuide);
   }
 
+  var shareSendMode = 'duo';
   if (elBtnShare && typeof elBtnShare.addEventListener === 'function') {
     elBtnShare.addEventListener('click', function () {
       if (!mapVerified) { if (elShareModal) elShareModal.hidden = false; return; }
-      var url = buildShareUrl();
-      if (elShareUrl) elShareUrl.value = url;
-      if (elShareResult) elShareResult.hidden = false;
+      var send = document.getElementById('share-send');
+      if (send) send.hidden = false;        // 已通关 → 选单人/双人
     });
   }
+  var elSendDuo = document.getElementById('send-duo');
+  var elSendSolo = document.getElementById('send-solo');
+  var elSendGo = document.getElementById('send-go');
+  if (elSendDuo) elSendDuo.addEventListener('click', function () {
+    shareSendMode = 'duo';
+    elSendDuo.classList.add('on'); elSendSolo.classList.remove('on');
+  });
+  if (elSendSolo) elSendSolo.addEventListener('click', function () {
+    shareSendMode = 'solo';
+    elSendSolo.classList.add('on'); elSendDuo.classList.remove('on');
+  });
+  if (elSendGo) elSendGo.addEventListener('click', function () {
+    var send = document.getElementById('share-send');
+    if (send) send.hidden = true;
+    var url = buildShareUrl();
+    if (elShareUrl) elShareUrl.value = url;
+    if (elShareResult) elShareResult.hidden = false;
+  });
   if (elModalTest && typeof elModalTest.addEventListener === 'function') {
     elModalTest.addEventListener('click', quickTestPlay);
   }
@@ -2928,6 +3010,11 @@
   var PAL = { x: 12, y: 48, colW: 82, rowH: 30, gap: 5 };
   var paletteCollapsed = false;     // 左侧机关面板是否收起
   var touchLayout = false;          // 手机端窄屏：改用底部工具条
+  var tutorialPulse = 0;            // 起终点闪烁相位
+  var playPromptShown = false;      // 「按 E 试玩」提示只弹一次
+  function tutorialActive() {
+    return editorMode && !editorUnlocked && !shareMode && !isEditLocked();
+  }
   function refreshTouchLayout() {
     touchLayout = window.innerWidth <= 900 || window.matchMedia('(max-width: 900px)').matches;
     var bar = document.getElementById('mobile-bar');
@@ -4023,6 +4110,7 @@
     for (var i = 0; i < traps.length; i++) {
       if (traps[i].cool > 0) traps[i].cool = Math.max(0, traps[i].cool - dt);
     }
+    if (tutorialActive()) tutorialPulse += dt;
     for (var ti = 0; ti < trapTips.length; ti++) {
       if (trapTips[ti].t > 0) trapTips[ti].t = Math.max(0, trapTips[ti].t - dt);
     }
@@ -4304,6 +4392,10 @@
         }
         winner = p;
         p.wins++;
+        if (!editorUnlocked && !isEditLocked() && !shareMode) {
+          var gd = document.getElementById('gate-done');
+          if (gd) gd.hidden = false;        // 弹「开工三步已完成」
+        }
         flash(gameMode === 'solo' ? '通关成功！按 R 重开' : (p.name + ' 获胜！按 R 重开'));
         updateHud();
         return;
@@ -4518,6 +4610,32 @@
   }
 
   function drawMarkers() {
+    if (tutorialActive()) {
+      var glow = 0.25 + 0.35 * (1 + Math.sin(tutorialPulse * 5));
+      if (startCell) {
+        var psx = startCell.col * CELL;
+        var psBase = markerBaseY(startCell);
+        ctx.save();
+        ctx.globalAlpha = glow;
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.arc(psx + 32, psBase - 16, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (goalCell) {
+        var pgx = goalCell.col * CELL;
+        var pgBase = markerBaseY(goalCell);
+        ctx.save();
+        ctx.globalAlpha = glow;
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.arc(pgx + 35, pgBase - 24, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
     if (startCell) {
       var sx = startCell.col * CELL;
       var sBase = markerBaseY(startCell);
