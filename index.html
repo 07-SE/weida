@@ -5170,10 +5170,36 @@
     }
   }
 
+  /* 当前工具放在这一格是否合法（预览用，和放置逻辑保持同一套判定） */
+  function ghostPlaceable(col, row) {
+    var tool = TOOLS[activeTool] || TOOLS[0];
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+    if (toolLocked(tool)) return false;
+    if (tool.kind === 'block') {
+      if (tileAt(col, row)) return false;
+      if (blockIndexAt(col, row) >= 0) return false;
+      if (trapIndexAt(col, row) >= 0) return false;
+      if (blockHitsMover(blockRectFor(tool.size, col, row))) return false;
+      return true;
+    }
+    if (tool.kind === 'marker') {
+      if (isMarkedCell(col, row)) return false;
+      if (tool.marker === 'start') {
+        return standable(col, row) && !(goalCell && goalCell.col === col && goalCell.row === row);
+      }
+      return standable(col, row) && !(startCell && startCell.col === col && startCell.row === row);
+    }
+    if (tool.kind === 'trap') {
+      return !!previewTrap(tool.type, col, row, activeMount);
+    }
+    return false;
+  }
+
   function drawGhost(col, row) {
     var tool = TOOLS[activeTool] || TOOLS[0];
+    var ghostOk = ghostPlaceable(col, row);
     ctx.save();
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = ghostOk ? 0.5 : 0.26;
     if (tool.kind === 'block') {
       var rect = blockRect({ col: col, row: row, size: tool.size });
       ctx.fillStyle = '#7fe0c0';
@@ -5256,11 +5282,38 @@
         else if (tool.type === 'spring') drawSpringTrap(fake);
       }
     }
+    if (!ghostOk) {
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = 'rgba(120,132,148,.85)';
+      ctx.fillRect(col * CELL + 1, row * CELL + 1, CELL - 2, CELL - 2);
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = 'rgba(255,255,255,.75)';
+      ctx.lineWidth = 3;
+      var cx0 = col * CELL + 20, cy0 = row * CELL + 20;
+      var cx1 = col * CELL + CELL - 20, cy1 = row * CELL + CELL - 20;
+      ctx.beginPath();
+      ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy1);
+      ctx.moveTo(cx1, cy0); ctx.lineTo(cx0, cy1);
+      ctx.stroke();
+    }
     ctx.restore();
 
-    ctx.strokeStyle = drag ? 'rgba(255,210,120,.9)' : 'rgba(150,200,255,.55)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(col * CELL + 0.5, row * CELL + 0.5, CELL - 1, CELL - 1);
+    ctx.strokeStyle = ghostOk ? 'rgba(90,230,150,.95)' : 'rgba(255,110,110,.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(col * CELL + 1, row * CELL + 1, CELL - 2, CELL - 2);
+
+    if (ghostOk) {
+      ctx.strokeStyle = 'rgba(140,255,190,.95)';
+      ctx.lineWidth = 3;
+      var L = 10;
+      var x0 = col * CELL + 2, y0 = row * CELL + 2, x1 = col * CELL + CELL - 2, y1 = row * CELL + CELL - 2;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0 + L); ctx.lineTo(x0, y0); ctx.lineTo(x0 + L, y0);
+      ctx.moveTo(x1 - L, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1, y0 + L);
+      ctx.moveTo(x0, y1 - L); ctx.lineTo(x0, y1); ctx.lineTo(x0 + L, y1);
+      ctx.moveTo(x1 - L, y1); ctx.lineTo(x1, y1); ctx.lineTo(x1, y1 - L);
+      ctx.stroke();
+    }
   }
 
   /* 可达路径提示：10% 绿色填充 + 深绿虚线边框（与实体方块明确区分） */
