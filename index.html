@@ -69,6 +69,20 @@
   }
   #game{ display:block; width:100%; height:100%; }
 
+  .stage-col{ display:flex; flex-direction:column; gap:6px; flex:0 0 auto; }
+  .hp-bar{
+    display:flex; gap:18px; align-items:center; height:22px; padding:0 6px;
+    font-size:16px; letter-spacing:3px; font-variant-numeric:tabular-nums;
+  }
+  .hp-bar .hp-p1{ color:#7db3ff; text-shadow:0 0 10px rgba(125,179,255,.55); }
+  .hp-bar .hp-p2{ color:#ffb176; text-shadow:0 0 10px rgba(255,177,118,.55); }
+  .hp-bar .dead{ color:#4a5b6d; text-shadow:none; }
+  .hp-bar.hurt{ animation:hpShake .32s ease; }
+  @keyframes hpShake{
+    0%{transform:translateX(0)} 25%{transform:translateX(-4px)}
+    50%{transform:translateX(4px)} 75%{transform:translateX(-2px)} 100%{transform:translateX(0)}
+  }
+
   #badge{
     position:absolute;
     top:10px; right:10px;
@@ -372,6 +386,11 @@
 </head>
 <body>
 <div id="app" style="padding: 24px;">
+  <div class="stage-col">
+  <div class="hp-bar" id="hp-bar">
+    <span class="hp-p1" id="hp-p1">♥♥♥♥</span>
+    <span class="hp-p2" id="hp-p2">♥♥♥♥</span>
+  </div>
   <div id="stage" style="width: 605px; height: 605px;">
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
@@ -380,6 +399,7 @@
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
     <div class="toast" id="edit-toast" hidden="">按 E 键 切换编辑 / 游玩模式</div>
     <div class="reach-warn" id="reach-warn" hidden="">算法判定暂不可达，可进入游玩实测通关认证</div>
+  </div>
   </div>
 
   <aside class="hud" id="hud" style="display: flex;">
@@ -1062,6 +1082,9 @@
   var elDotStart = document.getElementById('dot-start');
   var elDotGoal = document.getElementById('dot-goal');
   var elDotWin = document.getElementById('dot-win');
+  var elHpBar = document.getElementById('hp-bar');
+  var elHpP1 = document.getElementById('hp-p1');
+  var elHpP2 = document.getElementById('hp-p2');
   var elHome = document.getElementById('home');
   var elHomeEdit = document.getElementById('home-edit');
   var elHomeLevels = document.getElementById('home-levels');
@@ -1498,6 +1521,60 @@
     if (th2) th2.hidden = !(tutorialActive() && playPromptShown && !mapVerified);
 
     if (elStepsDone) elStepsDone.hidden = !all;
+  }
+
+  /* ---------- 常驻生命条 & 扣血飘字 ---------- */
+  var hpFloats = [];
+
+  function heartStr(n) {
+    var out = '';
+    for (var i = 0; i < HP_MAX; i++) out += (i < Math.round(n)) ? '♥' : '♡';
+    return out;
+  }
+
+  function syncHpBar() {
+    if (!elHpBar || !elHpP1) return;
+    elHpP1.textContent = heartStr(players[0].hp);
+    elHpP1.classList.toggle('dead', players[0].hp <= 0);
+    if (elHpP2) {
+      var duo = gameMode === 'duo';
+      elHpP2.style.display = duo ? '' : 'none';
+      if (duo) {
+        elHpP2.textContent = heartStr(players[1].hp);
+        elHpP2.classList.toggle('dead', players[1].hp <= 0);
+      }
+    }
+  }
+
+  function flashHpBar() {
+    if (!elHpBar) return;
+    elHpBar.classList.remove('hurt');
+    void elHpBar.offsetWidth;
+    elHpBar.classList.add('hurt');
+    setTimeout(function () { elHpBar.classList.remove('hurt'); }, 340);
+  }
+
+  function pushDamageFloat(pl, amount) {
+    hpFloats.push({ x: pl.x + BODY_W / 2, y: pl.y - 4, t: 1.0, text: '−' + amount });
+  }
+
+  function drawHpFloats() {
+    if (!hpFloats.length) return;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < hpFloats.length; i++) {
+      var f = hpFloats[i];
+      if (f.t <= 0) continue;
+      ctx.globalAlpha = Math.min(1, f.t * 1.6);
+      ctx.font = '800 20px system-ui,sans-serif';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(10,14,20,.85)';
+      ctx.strokeText(f.text, f.x, f.y - (1 - f.t) * 26);
+      ctx.fillStyle = '#ff5a5a';
+      ctx.fillText(f.text, f.x, f.y - (1 - f.t) * 26);
+    }
+    ctx.restore();
   }
 
   /* ---------- 首页双入口 ---------- */
@@ -4022,6 +4099,7 @@
 
   function damagePlayer(pl, amount, force) {
     if (!force && pl.invincible > 0) return false;
+    if (amount > 0) { pushDamageFloat(pl, amount); flashHpBar(); }
     pl.hp -= amount;
     pl.invincible = INVINCIBLE_TIME;
     if (pl.hp <= 0) {
@@ -4096,6 +4174,9 @@
       if (traps[i].cool > 0) traps[i].cool = Math.max(0, traps[i].cool - dt);
     }
     if (tutorialActive()) tutorialPulse += dt;
+    for (var fi = 0; fi < hpFloats.length; fi++) {
+      if (hpFloats[fi].t > 0) hpFloats[fi].t = Math.max(0, hpFloats[fi].t - dt * 0.9);
+    }
     for (var ti = 0; ti < trapTips.length; ti++) {
       if (trapTips[ti].t > 0) trapTips[ti].t = Math.max(0, trapTips[ti].t - dt);
     }
@@ -5240,6 +5321,7 @@
       drawGoalFail();
     }
     drawMarkers();
+    drawHpFloats();
     if (startCell) {                         // 没有起点 = 角色还没出生，不绘制
       var drawCount = gameMode === 'solo' ? 1 : players.length;
       for (var pi = 0; pi < drawCount; pi++) drawPlayer(players[pi]);
@@ -5430,6 +5512,7 @@
     elMode.classList.toggle('edit', editorMode);
     elBudget.textContent = trapCount() + '/' + budgetMax;
     syncStartCard();             // 开工三步：随 UI 刷新同步勾选
+    syncHpBar();
     if (elShareState) {
       elShareState.textContent = mapVerified
         ? '已通关，可生成分享链接'
