@@ -539,8 +539,8 @@
     <button type="button" data-tool="0">满格</button>
     <button type="button" data-tool="1">矮扁</button>
     <button type="button" data-tool="2">窄条</button>
-    <button type="button" data-tool="7">起点</button>
-    <button type="button" data-tool="8">终点</button>
+    <button type="button" data-tool="6">起点</button>
+    <button type="button" data-tool="7">终点</button>
     <button type="button" class="undo" id="m-undo">撤回</button>
     <button type="button" id="m-clear">清空</button>
     <button type="button" class="play" id="m-play">试玩</button>
@@ -722,7 +722,6 @@
     { kind: 'block', size: 'bar', label: '窄条' },
     { kind: 'trap', type: 'spike', label: '尖刺' },
     { kind: 'trap', type: 'spring', label: '弹簧' },
-    { kind: 'trap', type: 'spring', axis: 'up', label: '上弹' },
     { kind: 'trap', type: 'mover', label: '平台' },
     { kind: 'marker', marker: 'start', label: '起点' },
     { kind: 'marker', marker: 'goal', label: '终点' }
@@ -914,7 +913,7 @@
         { col: 4, row: 5, size: 'full' }
       ],
       traps: [
-        { type: 'spring', col: 1, row: 4, dist: 2 },
+        { type: 'spring', col: 1, row: 4, axis: 'side', dist: 2 },
         { type: 'spike', col: 4, row: 5, mount: 'left' },
         { type: 'mover', col: 3, row: 3, w: 1, dir: 'right', range: 2, speed: 70 }
       ]
@@ -935,7 +934,7 @@
       traps: [
         { type: 'spike', col: 2, row: 3, mount: 'right' },
         { type: 'spike', col: 4, row: 4 },
-        { type: 'spring', col: 5, row: 3, dist: 2 },
+        { type: 'spring', col: 5, row: 3, axis: 'side', dist: 2 },
         { type: 'mover', col: 3, row: 3, w: 1, dir: 'right', range: 1, speed: 70 },
         { type: 'mover', col: 1, row: 5, w: 1, dir: 'right', range: 1, speed: 70 }
       ]
@@ -1008,7 +1007,7 @@
         { type: 'mover', col: 4, row: 9, w: 1, dir: 'right', range: 1, speed: 70 },
         { type: 'spike', col: 2, row: 5 },
         { type: 'spring', col: 2, row: 5, mount: 'right', dist: 2 },
-        { type: 'spring', col: 8, row: 5, dist: 2 },
+        { type: 'spring', col: 8, row: 5, axis: 'side', dist: 2 },
         { type: 'spike', col: 3, row: 6, mount: 'right' },
         { type: 'spike', col: 6, row: 8 },
         { type: 'spike', col: 6, row: 9, mount: 'left' }
@@ -1051,7 +1050,7 @@
         { type: 'spike', col: 4, row: 8 },
         { type: 'spring', col: 1, row: 6, mount: 'right', dist: 2 },
         { type: 'spring', col: 5, row: 7, mount: 'left', dist: 2 },
-        { type: 'spring', col: 7, row: 9, dist: 2 }
+        { type: 'spring', col: 7, row: 9, axis: 'side', dist: 2 }
       ]
     },
   ];
@@ -1628,7 +1627,7 @@
       bs.push({ col: 5, row: 6, size: 'full' });
     } else if (kind === 'trap') {
       for (var c3 = 0; c3 < COLS_N; c3++) bs.push({ col: c3, row: 9, size: 'full' });
-      ts.push({ type: 'spring', col: 3, row: 8, mount: 'top', dist: 2 });
+      ts.push({ type: 'spring', col: 3, row: 8, mount: 'top', axis: 'side', dist: 2 });
       ts.push({ type: 'spike', col: 6, row: 8, mount: 'top' });
     }
     // 先清空整张画布（含模板基底瓦片），再写入起步内容
@@ -2260,12 +2259,12 @@
         if (spr && hops < 2) {
           hops++;
           var d = Math.max(1, Math.min(3, spr.dist || 2)) * CELL;
-          if (spr.axis === 'up') {                 // 纵向弹簧：直接向上弹起
+          if (!(spr.axis === 'side' || spr.mount === 'left' || spr.mount === 'right')) {
             p.vy = -Math.sqrt(2 * GRAVITY * d);
             p.onGround = false;
             continue;
           }
-          p.launchDir = dir >= 0 ? -1 : 1;
+          p.launchDir = spr.mount === 'left' ? -1 : spr.mount === 'right' ? 1 : (dir >= 0 ? -1 : 1);
           p.launchTimer = Math.sqrt(2 * SPRING_DECEL * d) / SPRING_DECEL;
           p.onGround = false;
           p.vy = 0;
@@ -3397,6 +3396,25 @@
     };
   }
 
+  /* 把指针所在格子解析成实际落点：空格子会吸附到相邻方块的某一面 */
+  function resolveTrapSpot(type, col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+    var direct = previewTrap(type, col, row, 'top');
+    if (direct) return { col: direct.col, row: direct.row, mount: 'top', rect: direct.rect };
+    var cands = [
+      { dc: 1, dr: 0, mount: 'left' },
+      { dc: -1, dr: 0, mount: 'right' },
+      { dc: 0, dr: 1, mount: 'top' }
+    ];
+    for (var i = 0; i < cands.length; i++) {
+      var c2 = col + cands[i].dc, r2 = row + cands[i].dr;
+      if (c2 < 0 || c2 >= COLS || r2 < 0 || r2 >= ROWS) continue;
+      var pv = previewTrap(type, c2, r2, cands[i].mount);
+      if (pv) return { col: pv.col, row: pv.row, mount: cands[i].mount, rect: pv.rect };
+    }
+    return null;
+  }
+
   /* 某方向上的可用行程：被方块/地图边缘限制后实际能走多远 */
   function moverFreeSpace(col, row, dir, rangeCells) {
     var start = col * CELL;
@@ -3491,13 +3509,14 @@
       }
     }
 
-    var pv = previewTrap(type, col, row, activeMount);
+    var spot = resolveTrapSpot(type, col, row);
+    var pv = spot;
     if (!pv) { flash(MSG.noSpace); return false; }
     if (trapIndexAt(pv.col, pv.row) >= 0) { flash(MSG.noSpace); return false; }
     if (boxHitsPlayer(pv.rect)) { flash(MSG.noSpace); return false; }
 
     var t = {
-      type: type, col: pv.col, row: pv.row, mount: axis === 'up' ? 'top' : activeMount,
+      type: type, col: pv.col, row: pv.row, mount: pv.mount || 'top',
       x: pv.rect.x, y: pv.rect.y, w: pv.rect.w, h: pv.rect.h, cool: 0
     };
     if (type === 'spring') t.dist = activeSpringDist;
@@ -4133,8 +4152,12 @@
         if (pl.launchTimer > 0) continue;
         if (pl.vy < 0) continue;
         if (!overlap(body, trapBox(t))) continue;
-        if (t.axis === 'up') startSpringUp(pl, t.dist || 2);
-        else startLaunch(pl, -pl.facing, t.dist || 2);
+        if (t.axis === 'side' || t.mount === 'left' || t.mount === 'right') {
+          var sdir = t.mount === 'left' ? -1 : t.mount === 'right' ? 1 : -pl.facing;
+          startLaunch(pl, sdir, t.dist || 2);
+        } else {
+          startSpringUp(pl, t.dist || 2);
+        }
         t.cool = SPRING_COOLDOWN;
       }
     }
@@ -4948,8 +4971,8 @@
 
       drawToolIcon(TOOLS[i], r, active);
 
-      var needStart = tutorialActive() && i === 7 && !cardTicks.start;
-      var needGoal = tutorialActive() && i === 8 && !cardTicks.goal;
+      var needStart = tutorialActive() && i === 6 && !cardTicks.start;
+      var needGoal = tutorialActive() && i === 7 && !cardTicks.goal;
       if (needStart || needGoal) {
         var ga = 0.3 + 0.4 * (1 + Math.sin(tutorialPulse * 5));
         ctx.save();
@@ -4972,22 +4995,9 @@
     // 挂载方位：顶面 / 左侧 / 右侧
     if (isTrapTool) {
       ctx.fillStyle = 'rgba(150,170,195,.9)';
-      ctx.font = '10px system-ui,sans-serif';
-      ctx.fillText('方位', PAL.x, mountChipRect(0).y + 11);
-      for (var m = 0; m < MOUNTS.length; m++) {
-        var cr = mountChipRect(m);
-        var on = activeMount === MOUNTS[m][0];
-        ctx.fillStyle = on ? 'rgba(76,141,255,.32)' : 'rgba(255,255,255,.05)';
-        roundRect(cr.x, cr.y, cr.w, cr.h, 5);
-        ctx.fill();
-        ctx.strokeStyle = on ? 'rgba(130,185,255,.95)' : 'rgba(140,170,210,.22)';
-        ctx.stroke();
-        ctx.fillStyle = on ? '#eaf2ff' : '#b9c7d9';
-        ctx.font = '10px system-ui,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(MOUNTS[m][1], cr.x + cr.w / 2, cr.y + cr.h / 2);
-        ctx.textAlign = 'left';
-      }
+      ctx.font = '11px system-ui,sans-serif';
+      ctx.fillStyle = 'rgba(163,183,206,.95)';
+      ctx.fillText('贴在方块哪一边，就往哪一边弹', PAL.x, mountChipRect(0).y + 14);
     }
 
     // 弹簧弹射距离：1 格 / 2 格
@@ -5084,7 +5094,7 @@
     if (helpOpen) {
       var lines = [
         '左键放置 · 右键删除',
-        '数字键 1-9 切换工具',
+        '数字键 1-8 切换工具',
         'Z 切方位 · F 切弹射',
         'E 切换编辑 / 游玩',
         'Ctrl+Z 撤回 · Ctrl+Y 恢复'
@@ -5190,7 +5200,7 @@
       return standable(col, row) && !(startCell && startCell.col === col && startCell.row === row);
     }
     if (tool.kind === 'trap') {
-      return !!previewTrap(tool.type, col, row, activeMount);
+      return !!resolveTrapSpot(tool.type, col, row);
     }
     return false;
   }
@@ -5275,9 +5285,13 @@
         ctx.fill();
       }
     } else if (tool.kind === 'trap') {
-      var pv = previewTrap(tool.type, col, row, activeMount);
-      if (pv) {
-        var fake = { type: tool.type, mount: activeMount, x: pv.rect.x, y: pv.rect.y, w: pv.rect.w, h: pv.rect.h };
+      var spot = resolveTrapSpot(tool.type, col, row);
+      if (spot) {
+        var fake = {
+          type: tool.type, mount: spot.mount,
+          x: spot.rect.x, y: spot.rect.y, w: spot.rect.w, h: spot.rect.h,
+          dist: activeSpringDist
+        };
         if (tool.type === 'spike') drawSpikeTrap(fake);
         else if (tool.type === 'spring') drawSpringTrap(fake);
       }
