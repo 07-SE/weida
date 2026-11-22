@@ -536,11 +536,12 @@
   </aside>
 
   <div id="mobile-bar">
-    <button type="button" data-tool="0">满格</button>
-    <button type="button" data-tool="1">矮扁</button>
-    <button type="button" data-tool="2">窄条</button>
-    <button type="button" data-tool="6">起点</button>
-    <button type="button" data-tool="7">终点</button>
+    <button type="button" data-tool="0" id="m-terrain">地形</button>
+    <button type="button" data-tool="1">尖刺</button>
+    <button type="button" data-tool="2">弹簧</button>
+    <button type="button" data-tool="3">平台</button>
+    <button type="button" data-tool="4">起点</button>
+    <button type="button" data-tool="5">终点</button>
     <button type="button" class="undo" id="m-undo">撤回</button>
     <button type="button" id="m-clear">清空</button>
     <button type="button" class="play" id="m-play">试玩</button>
@@ -717,15 +718,15 @@
     bar: { w: 32, h: 64, label: '32×64 窄条' }
   };
   var TOOLS = [
-    { kind: 'block', size: 'full', label: '满格' },
-    { kind: 'block', size: 'flat', label: '矮扁' },
-    { kind: 'block', size: 'bar', label: '窄条' },
+    { kind: 'terrain', label: '地形' },
     { kind: 'trap', type: 'spike', label: '尖刺' },
     { kind: 'trap', type: 'spring', label: '弹簧' },
     { kind: 'trap', type: 'mover', label: '平台' },
     { kind: 'marker', marker: 'start', label: '起点' },
     { kind: 'marker', marker: 'goal', label: '终点' }
   ];
+  var TERRAIN_SIZES = ['full', 'flat', 'bar'];
+  var activeTerrainSize = 'full';
 
   /* ---------- 编辑历史：撤回 / 恢复 / 一键清空 ---------- */
   var undoStack = [];
@@ -3094,7 +3095,7 @@
   var IS_MOBILE_UA = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|HarmonyOS|MicroMessenger/i.test(navigator.userAgent || '');
   var MOUNTS = [['top', '顶面'], ['left', '左侧'], ['right', '右侧']];
   var drag = null;
-  var hover = { col: -1, row: -1 };
+  var hover = { col: -1, row: -1, fx: 0.5, fy: 0.5 };
   var deny = { col: -1, row: -1, t: 0 };
   var goalFail = null;      // 终点校验失败时的可视化（仅编辑模式）
   var goalTint = false;     // 选中/悬停终点工具时实时显示可达染色，放置后自动消失
@@ -3401,11 +3402,14 @@
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
     var direct = previewTrap(type, col, row, 'top');
     if (direct) return { col: direct.col, row: direct.row, mount: 'top', rect: direct.rect };
+    var fx = (typeof hover.fx === 'number') ? hover.fx : 0.5;
+    var fy = (typeof hover.fy === 'number') ? hover.fy : 0.5;
     var cands = [
-      { dc: 1, dr: 0, mount: 'left' },
-      { dc: -1, dr: 0, mount: 'right' },
-      { dc: 0, dr: 1, mount: 'top' }
+      { dc: -1, dr: 0, mount: 'right', d: fx },
+      { dc: 1, dr: 0, mount: 'left', d: 1 - fx },
+      { dc: 0, dr: 1, mount: 'top', d: 1 - fy }
     ];
+    cands.sort(function (a, b) { return a.d - b.d; });
     for (var i = 0; i < cands.length; i++) {
       var c2 = col + cands[i].dc, r2 = row + cands[i].dr;
       if (c2 < 0 || c2 >= COLS || r2 < 0 || r2 >= ROWS) continue;
@@ -3703,7 +3707,7 @@
     if (toolLocked(tool)) { flash('先把三步做完，机关工具随后解锁'); return false; }
     if (tool.kind === 'marker') return placeMarker(tool.marker, col, row);
     if (tool.kind === 'trap') return placeTrapAt(tool.type, col, row, tool.axis);
-    return placeBlockAt(tool.size, col, row);
+    return placeBlockAt(activeTerrainSize, col, row);
   }
 
   canvas.addEventListener('mousedown', function (e) {
@@ -3725,6 +3729,19 @@
       paletteCollapsed = !paletteCollapsed;
       flash(paletteCollapsed ? '机关面板已收起' : '机关面板已展开');
       return;
+    }
+
+    var tl = TOOLS[activeTool];
+    if (tl && tl.kind === 'terrain') {
+      for (var ci = 0; ci < TERRAIN_SIZES.length; ci++) {
+        var ccr = terrainChipRect(ci);
+        if (p.x >= ccr.x && p.x <= ccr.x + ccr.w && p.y >= ccr.y && p.y <= ccr.y + ccr.h) {
+          activeTerrainSize = TERRAIN_SIZES[ci];
+          flash('地形：' + BLOCKS[activeTerrainSize].label);
+          updateHud();
+          return;
+        }
+      }
     }
 
     var pi = paletteIndexAt(p.x, p.y);
@@ -3794,14 +3811,16 @@
     var p = canvasPoint(e);
     hover.col = Math.floor(p.x / CELL);
     hover.row = Math.floor(p.y / CELL);
+    hover.fx = (p.x - hover.col * CELL) / CELL;
+    hover.fy = (p.y - hover.row * CELL) / CELL;
 
     // 选中终点工具时实时显示可达染色，放置完成后由 placeMarker 关掉
     if (isGoalToolActive()) goalTint = true;
 
     // 方块工具：悬停在移动平台顶面/路径上时光标变成“禁止”
     var tool = TOOLS[activeTool] || TOOLS[0];
-    if (tool.kind === 'block') {
-      var rect = blockRectFor(tool.size, hover.col, hover.row);
+    if (tool.kind === 'terrain') {
+      var rect = blockRectFor(activeTerrainSize, hover.col, hover.row);
       canvas.style.cursor = blockHitsMover(rect) ? 'not-allowed' : 'crosshair';
     } else {
       canvas.style.cursor = 'crosshair';
@@ -3821,7 +3840,7 @@
       if (useTool(col, row)) {
         if (tool.kind === 'marker') flash(tool.label + '已设置');
         else if (tool.kind === 'trap') flash('已挂载 ' + tool.label);
-        else flash('已放置 ' + BLOCKS[tool.size].label);
+        else flash('已放置 ' + BLOCKS[activeTerrainSize].label);
       }
     } else if (moveObject(drag, col, row)) {
       flash('已移动');
@@ -4696,21 +4715,18 @@
 
   function drawMarkers() {
     if (tutorialActive()) {
-      var glow = 0.35 + 0.45 * (1 + Math.sin(tutorialPulse * 5));
+      var ring = 0.55 + 0.45 * Math.sin(tutorialPulse * 5);
+      var rr = 26 + 4 * Math.sin(tutorialPulse * 5);
+      var glow = 0;
       if (startCell) {
         var psx = startCell.col * CELL;
         var psBase = markerBaseY(startCell);
         ctx.save();
-        ctx.globalAlpha = glow;
-        ctx.fillStyle = '#ffd166';
+        ctx.globalAlpha = ring;
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(psx + 32, psBase - 16, 34, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#ffe08a';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(psx + 32, psBase - 16, 34 + 2 * Math.sin(tutorialPulse * 5), 0, Math.PI * 2);
+        ctx.arc(psx + 32, psBase - 16, rr, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
@@ -4718,16 +4734,11 @@
         var pgx = goalCell.col * CELL;
         var pgBase = markerBaseY(goalCell);
         ctx.save();
-        ctx.globalAlpha = glow;
-        ctx.fillStyle = '#ffd166';
+        ctx.globalAlpha = ring;
+        ctx.strokeStyle = '#ffd166';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(pgx + 35, pgBase - 24, 34, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = '#ffe08a';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.arc(pgx + 35, pgBase - 24, 34 + 2 * Math.sin(tutorialPulse * 5), 0, Math.PI * 2);
+        ctx.arc(pgx + 35, pgBase - 24, rr, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
       }
@@ -4984,13 +4995,35 @@
         ctx.restore();
       }
 
-      ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
-      ctx.font = '600 11px system-ui,sans-serif';
-      ctx.fillText((i + 1) + ' ' + TOOLS[i].label, r.x + 28, r.y + r.h / 2);
+      ctx.fillStyle = active ? 'rgba(234,242,255,.9)' : 'rgba(150,166,184,.85)';
+      ctx.font = '600 10px ui-monospace,Consolas,monospace';
+      ctx.fillText(String(i + 1), r.x + 4, r.y + 10);
     }
 
     var tool = TOOLS[activeTool] || TOOLS[0];
     var isTrapTool = tool.kind === 'trap' && tool.type !== 'mover';
+
+    // 地形工具展开：三个形状图标
+    if (tool.kind === 'terrain') {
+      var sx0 = PAL.x;
+      var sy0 = paletteRect(TOOLS.length - 1).y + paletteRect(0).h + 10;
+      for (var tsi = 0; tsi < TERRAIN_SIZES.length; tsi++) {
+        var sz = TERRAIN_SIZES[tsi];
+        var chip = terrainChipRect(tsi);
+        var onT = activeTerrainSize === sz;
+        ctx.fillStyle = onT ? 'rgba(76,141,255,.35)' : 'rgba(255,255,255,.05)';
+        roundRect(chip.x, chip.y, chip.w, chip.h, 6);
+        ctx.fill();
+        ctx.strokeStyle = onT ? 'rgba(130,185,255,.95)' : 'rgba(140,170,210,.22)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        var defT = BLOCKS[sz];
+        var iwT = Math.max(10, defT.w * 0.22);
+        var ihT = Math.max(8, defT.h * 0.22);
+        ctx.fillStyle = onT ? '#cfe0f5' : '#7e8ea3';
+        ctx.fillRect(chip.x + chip.w / 2 - iwT / 2, chip.y + chip.h / 2 - ihT / 2, iwT, ihT);
+      }
+    }
 
     // 挂载方位：顶面 / 左侧 / 右侧
     if (isTrapTool) {
@@ -5128,6 +5161,12 @@
   }
 
   /* 编辑器附加层：悬停预览 / 红色回弹（收起面板时同样生效） */
+  function terrainChipRect(i) {
+    var base = paletteRect(TOOLS.length - 1);
+    var w = 30, h = 26, gap = 8;
+    return { x: PAL.x + i * (w + gap), y: base.y + base.h + 10, w: w, h: h };
+  }
+
   function drawEditorOverlay() {
     if (hover.col >= 0 && hover.col < COLS && hover.row >= 0 && hover.row < ROWS) {
       drawGhost(hover.col, hover.row);
@@ -5144,8 +5183,8 @@
     var cy = r.y + r.h / 2;
     ctx.fillStyle = active ? '#9cc2ff' : '#7e8ea3';
 
-    if (tool.kind === 'block') {
-      var def = BLOCKS[tool.size];
+    if (tool.kind === 'terrain') {
+      var def = BLOCKS[activeTerrainSize];
       var iw = Math.max(8, def.w * 0.2);
       var ih = Math.max(8, def.h * 0.2);
       ctx.fillRect(cx - iw / 2, cy - ih / 2, iw, ih);
@@ -5185,11 +5224,11 @@
     var tool = TOOLS[activeTool] || TOOLS[0];
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
     if (toolLocked(tool)) return false;
-    if (tool.kind === 'block') {
+    if (tool.kind === 'terrain') {
       if (tileAt(col, row)) return false;
       if (blockIndexAt(col, row) >= 0) return false;
       if (trapIndexAt(col, row) >= 0) return false;
-      if (blockHitsMover(blockRectFor(tool.size, col, row))) return false;
+      if (blockHitsMover(blockRectFor(activeTerrainSize, col, row))) return false;
       return true;
     }
     if (tool.kind === 'marker') {
@@ -5210,8 +5249,8 @@
     var ghostOk = ghostPlaceable(col, row);
     ctx.save();
     ctx.globalAlpha = ghostOk ? 0.5 : 0.26;
-    if (tool.kind === 'block') {
-      var rect = blockRect({ col: col, row: row, size: tool.size });
+    if (tool.kind === 'terrain') {
+      var rect = blockRect({ col: col, row: row, size: activeTerrainSize });
       ctx.fillStyle = '#7fe0c0';
       ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
     } else if (tool.type === 'mover') {
@@ -5297,17 +5336,22 @@
       }
     }
     if (!ghostOk) {
-      ctx.globalAlpha = 0.72;
-      ctx.fillStyle = 'rgba(120,132,148,.85)';
-      ctx.fillRect(col * CELL + 1, row * CELL + 1, CELL - 2, CELL - 2);
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = 'rgba(150,166,184,.6)';
+      ctx.lineWidth = 1;
+      for (var hh = -CELL; hh < CELL; hh += 8) {
+        ctx.beginPath();
+        ctx.moveTo(col * CELL + hh, row * CELL);
+        ctx.lineTo(col * CELL + hh + CELL, row * CELL + CELL);
+        ctx.stroke();
+      }
       ctx.globalAlpha = 0.95;
-      ctx.strokeStyle = 'rgba(255,255,255,.75)';
-      ctx.lineWidth = 3;
-      var cx0 = col * CELL + 20, cy0 = row * CELL + 20;
-      var cx1 = col * CELL + CELL - 20, cy1 = row * CELL + CELL - 20;
+      ctx.strokeStyle = 'rgba(255,140,140,.95)';
+      ctx.lineWidth = 2;
+      var bx = col * CELL + CELL - 16, by = row * CELL + 5;
       ctx.beginPath();
-      ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy1);
-      ctx.moveTo(cx1, cy0); ctx.lineTo(cx0, cy1);
+      ctx.moveTo(bx, by); ctx.lineTo(bx + 10, by + 10);
+      ctx.moveTo(bx + 10, by); ctx.lineTo(bx, by + 10);
       ctx.stroke();
     }
     ctx.restore();
