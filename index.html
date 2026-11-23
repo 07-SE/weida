@@ -1536,6 +1536,7 @@
   /* 官图模式：完全锁定，不可编辑 */
   /* 临时开关：开放「关卡」编辑权限（改完关卡后设回 false 关闭） */
   var ALLOW_LEVEL_EDIT = true;
+  if (ALLOW_LEVEL_EDIT) editorUnlocked = true;   // 临时：跳过入门三步，直接可编辑
 
   function isEditLocked() {
     if (shareMode) return true;
