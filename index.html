@@ -465,7 +465,7 @@
       <span class="seg-title">地图模式</span>
       <div class="seg" id="mapmode-seg">
         <button type="button" data-mapmode="blank" class="on">空白</button>
-        <button type="button" id="btn-tpl">模板</button>
+        <button type="button" id="btn-tpl">模板 ▾</button>
       </div>
     </div>
 
@@ -759,7 +759,7 @@
     bar: { w: 32, h: 64, label: '32×64 窄条' }
   };
   var TOOLS = [
-    { kind: 'terrain', label: '地形' },
+    { kind: 'terrain', label: '格子' },
     { kind: 'trap', type: 'spike', label: '尖刺' },
     { kind: 'trap', type: 'spring', label: '弹簧' },
     { kind: 'trap', type: 'mover', label: '平台' },
@@ -1757,6 +1757,19 @@
   }
 
   /* ---------- 首页双入口 ---------- */
+  function maybeWarnEmptyCanvas() {
+    if (!editorMode || !editorUnlocked || shareMode || isEditLocked()) return;
+    var hasGround = false;
+    for (var r = 0; r < ROWS && !hasGround; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if (grid[r][c] === true || blockInCell(c, r)) { hasGround = true; break; }
+      }
+    }
+    if (hasGround) return;
+    var bt = document.getElementById('blank-tip');
+    if (bt) bt.hidden = false;
+  }
+
   function enterEdit() {
     if (elHome) elHome.hidden = true;
     if (elBackBtn) elBackBtn.hidden = false;
@@ -3107,7 +3120,9 @@
     elMapModeSeg.addEventListener('click', function (ev) {
       var b = segButton(ev);
       if (!b) return;
-      setMapMode(b.getAttribute('data-mapmode'));
+      var mmm = b.getAttribute('data-mapmode');
+      if (!mmm) return;                 // 模板按钮由自己的监听处理
+      setMapMode(mmm);
     });
   }
   refreshTouchLayout();
@@ -3169,6 +3184,7 @@
       if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
       editorUnlocked = true;
       editorMode = true;                    // 进入完整编辑（编辑态）
+      setTimeout(maybeWarnEmptyCanvas, 60);
       winner = null;                        // 清掉试玩那一局的结算状态
       comboQueue.length = 0;
       resetPlayersForEditor();
@@ -5213,11 +5229,9 @@
       ctx.font = '600 10px ui-monospace,Consolas,monospace';
       ctx.fillText(String(i + 1), r.x + 4, r.y + 10);
 
-      if (TOOLS[i].kind !== 'terrain') {
-        ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
-        ctx.font = '600 11px system-ui,sans-serif';
-        ctx.fillText(TOOLS[i].label, r.x + 26, r.y + r.h / 2);
-      }
+      ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
+      ctx.font = '600 11px system-ui,sans-serif';
+      ctx.fillText(TOOLS[i].label, r.x + 26, r.y + r.h / 2);
     }
 
     var tool = TOOLS[activeTool] || TOOLS[0];
@@ -5241,12 +5255,7 @@
         var iwT = Math.max(10, defT.w * 0.22);
         var ihT = Math.max(8, defT.h * 0.22);
         ctx.fillStyle = onT ? '#cfe0f5' : '#7e8ea3';
-        ctx.fillRect(chip.x + chip.w / 2 - iwT / 2, chip.y + 9 - ihT / 2, iwT, ihT);
-        ctx.font = '600 9px system-ui,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = onT ? '#dbe8f7' : '#8fa3b8';
-        ctx.fillText(defT.label, chip.x + chip.w / 2, chip.y + chip.h - 5);
-        ctx.textAlign = 'left';
+        ctx.fillRect(chip.x + chip.w / 2 - iwT / 2, chip.y + chip.h / 2 - ihT / 2, iwT, ihT);
       }
     }
 
@@ -5375,7 +5384,7 @@
   /* 编辑器附加层：悬停预览 / 红色回弹（收起面板时同样生效） */
   function terrainChipRect(i) {
     var base = paletteRect(TOOLS.length - 1);
-    var w = 34, h = 34, gap = 8;
+    var w = 30, h = 26, gap = 8;
     return { x: PAL.x + i * (w + gap), y: base.y + base.h + 10, w: w, h: h };
   }
 
@@ -5790,7 +5799,8 @@
       var mbtns = elMapModeSeg.querySelectorAll('button');
       for (var m = 0; m < mbtns.length; m++) {
         var mm = mbtns[m].getAttribute('data-mapmode');
-        mbtns[m].hidden = modes.indexOf(mm) < 0 || mm === 'semi';   // 砍：半官图入口隐藏
+        if (!mm) { mbtns[m].hidden = false; continue; }   // 模板按钮常显
+        mbtns[m].hidden = modes.indexOf(mm) < 0 || mm === 'semi';
         mbtns[m].classList.toggle('on', mm === mapMode);
       }
     }
