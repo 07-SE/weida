@@ -3151,7 +3151,11 @@
 
   var elBtnTpl = document.getElementById('btn-tpl');
   if (elBtnTpl && typeof elBtnTpl.addEventListener === 'function') {
-    elBtnTpl.addEventListener('click', cycleStarterTemplate);
+    elBtnTpl.addEventListener('click', function () {
+      if (isEditLocked() || shareMode) return;
+      var m = document.getElementById('starter-modal');
+      if (m) m.hidden = false;
+    });
   }
   var elBtnToLevels = document.getElementById('btn-to-levels');
   if (elBtnToLevels && typeof elBtnToLevels.addEventListener === 'function') {
@@ -4905,25 +4909,6 @@
     roundRect(t.x + 4, t.y, t.w - 8, 8, 3);
     ctx.fill();
 
-    // 方向标识：上弹画上下箭头，横弹画左右箭头
-    ctx.save();
-    ctx.strokeStyle = t.axis === 'up' ? '#ffd166' : '#7de2a8';
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    if (t.axis === 'up') {
-      var cx = t.x + t.w / 2;
-      ctx.moveTo(cx, t.y - 2); ctx.lineTo(cx, t.y - 9);
-      ctx.moveTo(cx - 3.5, t.y - 6); ctx.lineTo(cx, t.y - 9.5); ctx.lineTo(cx + 3.5, t.y - 6);
-      ctx.moveTo(cx - 3.5, t.y + 4); ctx.lineTo(cx, t.y + 7.5); ctx.lineTo(cx + 3.5, t.y + 4);
-    } else {
-      var cy = t.y + t.h / 2;
-      ctx.moveTo(t.x - 2, cy); ctx.lineTo(t.x - 8, cy);
-      ctx.moveTo(t.x - 5, cy - 3.5); ctx.lineTo(t.x - 8.5, cy); ctx.lineTo(t.x - 5, cy + 3.5);
-      ctx.moveTo(t.x + t.w + 2, cy); ctx.lineTo(t.x + t.w + 8, cy);
-      ctx.moveTo(t.x + t.w + 5, cy - 3.5); ctx.lineTo(t.x + t.w + 8.5, cy); ctx.lineTo(t.x + t.w + 5, cy + 3.5);
-    }
-    ctx.stroke();
-    ctx.restore();
   }
 
   function drawPlatforms() {
