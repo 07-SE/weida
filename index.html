@@ -4173,6 +4173,7 @@
   }
 
   function toolLocked(tool) {
+    if (typeof ALLOW_LEVEL_EDIT !== 'undefined' && ALLOW_LEVEL_EDIT) return false;  // 临时：全放开
     return !editorUnlocked && editorMode && tool && tool.kind === 'trap';
   }
 
