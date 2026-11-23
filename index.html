@@ -1779,7 +1779,12 @@
     if (COLS !== 10) setCanvasGeometry(10);
     if (gameMode !== 'solo') setMode('solo');
     editorMode = true;
+    winner = null;
     if (editorUnlocked) {           // 已解锁：直接回完整编辑
+      if (mapMode !== 'blank') {    // 从关卡返回：切回自己的画布
+        setMapMode('blank');
+        if (typeof restoreDraft === 'function') restoreDraft(COLS);
+      }
       syncSegButtons();
       updateHud();
       return;
