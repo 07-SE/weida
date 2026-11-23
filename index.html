@@ -538,6 +538,8 @@
 
     <div class="divider"></div>
 
+    <p class="seg-hint" id="edit-keys" hidden>模板 T · 1 2 3 4</p>
+
     <div class="legend" id="hud-legend">
       <div class="row"><span>P1 移动</span><b><kbd>A</kbd><kbd>D</kbd></b></div>
       <div class="row"><span>P1 跳跃</span><b><kbd>W</kbd><kbd>空格</kbd></b></div>
@@ -587,6 +589,16 @@
       <button type="button" id="home-edit"><b>编辑</b><em>做一张坑图发给朋友</em></button>
       <button type="button" id="home-levels"><b>关卡</b><em>玩别人做好的图</em></button>
     </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="duo-tip" hidden>
+  <div class="modal">
+    <p class="modal-title">双人玩法（第一次双人局）</p>
+    <p class="modal-text">① <b>踩头跳</b>：站在队友头顶起跳，能跳得更高，够到上面的平台。</p>
+    <p class="modal-text">② <b>连坐</b>：队友踩到尖刺，你也会掉 <b>半滴血</b>（0.5）。</p>
+    <p class="modal-text">每人 4 滴血，血量空了才失败。</p>
+    <div class="seg"><button type="button" id="duo-tip-ok">知道了</button></div>
   </div>
 </div>
 
@@ -1547,7 +1559,11 @@
 
   function heartStr(n) {
     var out = '';
-    for (var i = 0; i < HP_MAX; i++) out += (i < Math.round(n)) ? '♥' : '♡';
+    for (var i = 0; i < HP_MAX; i++) {
+      if (n >= i + 1) out += '♥';
+      else if (n >= i + 0.5) out += '❥';
+      else out += '♡';
+    }
     return out;
   }
 
@@ -1594,6 +1610,37 @@
       ctx.fillText(f.text, f.x, f.y - (1 - f.t) * 26);
     }
     ctx.restore();
+  }
+
+  /* ---------- 编辑态右栏精简 & 双人首局提示 ---------- */
+  var elHudMode, elHudState, elHudHp, elHudApex, elHudVel, elHudDebug, elHudLegend, elEditKeys;
+
+  function applyEditorHud() {
+    if (!elHudMode) {
+      elHudMode = document.getElementById('hud-mode');
+      elHudState = document.getElementById('hud-state');
+      elHudHp = document.getElementById('hud-hp');
+      elHudApex = document.getElementById('hud-apex');
+      elHudVel = document.getElementById('hud-vel');
+      elHudDebug = document.getElementById('hud-debug');
+      elHudLegend = document.getElementById('hud-legend');
+      elEditKeys = document.getElementById('edit-keys');
+    }
+    var editing = editorMode && !shareMode && editorUnlocked;
+    var rows = [elHudMode, elHudState, elHudHp, elHudApex, elHudVel];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] && rows[i].parentNode) rows[i].parentNode.hidden = editing;
+    }
+    if (elHudDebug) elHudDebug.hidden = editing;
+    if (elHudLegend) elHudLegend.hidden = editing;
+    if (elEditKeys) elEditKeys.hidden = !editing;
+  }
+
+  function showDuoTipOnce() {
+    try { if (localStorage.getItem('weida_duo_tip') === '1') return; } catch (e) { return; }
+    var m = document.getElementById('duo-tip');
+    if (!m) return;
+    m.hidden = false;
   }
 
   /* ---------- 返回首页 & 弹窗关闭叉 ---------- */
@@ -1664,6 +1711,7 @@
     if (elBackBtn) elBackBtn.hidden = false;
     if (COLS !== 10) setCanvasGeometry(10);
     setMapMode('official');
+    if (gameMode === 'duo') showDuoTipOnce();
     syncSegButtons();
     updateHud();
   }
@@ -3003,6 +3051,15 @@
     refreshTouchLayout();
     syncMobileBar();
   });
+
+  var elDuoTipOk = document.getElementById('duo-tip-ok');
+  if (elDuoTipOk && typeof elDuoTipOk.addEventListener === 'function') {
+    elDuoTipOk.addEventListener('click', function () {
+      var m = document.getElementById('duo-tip');
+      if (m) m.hidden = true;
+      try { localStorage.setItem('weida_duo_tip', '1'); } catch (e) {}
+    });
+  }
 
   if (elBackBtn && typeof elBackBtn.addEventListener === 'function') {
     elBackBtn.addEventListener('click', goHome);
@@ -4527,7 +4584,7 @@
     if (!victim) return;
     comboQueue.push({
       victim: victim,
-      dmg: Math.max(1, Math.round(amount * COMBO_RATIO)),
+      dmg: Math.max(0.5, amount * COMBO_RATIO),
       phase: 'delay',
       t: COMBO_DELAY
     });
@@ -5400,15 +5457,6 @@
       }
     }
     if (!ghostOk) {
-      ctx.globalAlpha = 0.45;
-      ctx.strokeStyle = 'rgba(150,166,184,.6)';
-      ctx.lineWidth = 1;
-      for (var hh = -CELL; hh < CELL; hh += 8) {
-        ctx.beginPath();
-        ctx.moveTo(col * CELL + hh, row * CELL);
-        ctx.lineTo(col * CELL + hh + CELL, row * CELL + CELL);
-        ctx.stroke();
-      }
       ctx.globalAlpha = 0.95;
       ctx.strokeStyle = 'rgba(255,140,140,.95)';
       ctx.lineWidth = 2;
@@ -5662,6 +5710,7 @@
     if (elBlankHint) elBlankHint.hidden = !(mapMode === 'blank' && (!startCell || !goalCell));
 
     syncMobileBar();
+    applyEditorHud();
     var toolsOn = editorMode && !isEditLocked();    // 官图锁定不给编辑工具
     if (elEditTools) elEditTools.hidden = !toolsOn;
     if (!toolsOn && elClearConfirm) elClearConfirm.hidden = true;
