@@ -414,12 +414,13 @@
   .ls-card.ls-hard{ border-color:rgba(255,107,107,.9); box-shadow:0 0 0 1px rgba(255,107,107,.25), 0 8px 22px -14px rgba(255,107,107,.8); }
 
   .next-level{
-    position:absolute; left:50%; transform:translateX(-50%); bottom:10px; z-index:8;
-    height:32px; padding:0 16px; border:0; border-radius:16px; cursor:pointer;
-    background:rgba(87,211,140,.95); color:#08170f; font-size:13px; font-weight:800;
-    box-shadow:0 8px 22px -8px rgba(87,211,140,.8);
+    width:100%; height:34px; border:0; border-radius:9px; cursor:pointer;
+    font:inherit; font-size:12.5px; font-weight:800; letter-spacing:.02em;
   }
-  .next-level:hover{ filter:brightness(1.08); }
+  .next-level.easy{ background:rgba(87,211,140,.95); color:#08170f; box-shadow:0 6px 18px -8px rgba(87,211,140,.9); }
+  .next-level.mid{ background:rgba(255,209,102,.96); color:#241706; box-shadow:0 6px 18px -8px rgba(255,209,102,.9); }
+  .next-level.hard{ background:rgba(255,107,107,.96); color:#2a0b0b; box-shadow:0 6px 18px -8px rgba(255,107,107,.9); }
+  .next-level:hover{ filter:brightness(1.07); }
   .next-level.last{
     background:rgba(255,255,255,.1); color:#93a9c0; cursor:default;
     box-shadow:inset 0 0 0 1px rgba(120,170,230,.25);
@@ -475,7 +476,6 @@
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
     <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
-    <button type="button" class="next-level" id="next-level" hidden>下一关 ▶</button>
     <div class="key-hint" id="key-hint"></div>
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
     <div class="toast" id="edit-toast" hidden="">按 E 键 切换编辑 / 游玩模式</div>
@@ -616,6 +616,12 @@
       <div class="row key-edit"><span>模板</span><b><kbd>T</kbd></b></div>
       <div class="row key-edit"><span>调试盒</span><b><kbd>B</kbd></b></div>
       <div class="row"><span>复位</span><b><kbd>Q</kbd><kbd>0</kbd><kbd>R</kbd></b></div>
+    </div>
+
+    <div class="seg-block" id="next-level-block" hidden>
+      <div class="seg">
+        <button type="button" class="next-level" id="next-level">下一关 ▶</button>
+      </div>
     </div>
 
     <p class="note" id="hud-note">P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%</p>
@@ -1907,19 +1913,24 @@
 
   function syncNextLevelBtn() {
     var btn = document.getElementById('next-level');
+    var blk = document.getElementById('next-level-block');
     if (!btn) return;
     var show = (mapMode === 'official') && !editorMode && !shareMode;
+    if (blk) blk.hidden = !show;
     btn.hidden = !show;
     if (!show) return;
+
     var total = officialList(COLS).length;
-    if (currentOfficial + 1 >= total) {
+    var isLast = currentOfficial + 1 >= total;
+    btn.classList.remove('easy', 'mid', 'hard', 'last');
+    if (isLast) {
       btn.textContent = '这是最后一关';
       btn.disabled = true;
       btn.classList.add('last');
     } else {
       btn.textContent = '下一关 ▶';
       btn.disabled = false;
-      btn.classList.remove('last');
+      btn.classList.add(LS_DIFF[currentOfficial] || 'easy');
     }
   }
 
