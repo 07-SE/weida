@@ -3619,8 +3619,24 @@
     return -1;
   }
 
-  function objectAt(col, row) {
+  function trapIndexAtPointer(col, row) {
     var ti = trapIndexAt(col, row);
+    if (ti >= 0) return ti;
+    var cx = col * CELL, cy = row * CELL;
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type === 'mover') continue;
+      if (t.mount !== 'left' && t.mount !== 'right') continue;
+      var tb = trapBox(t);
+      var ox = Math.min(cx + CELL, tb.x + tb.w) - Math.max(cx, tb.x);
+      var oy = Math.min(cy + CELL, tb.y + tb.h) - Math.max(cy, tb.y);
+      if (ox > 2 && oy > 2) return i;
+    }
+    return -1;
+  }
+
+  function objectAt(col, row) {
+    var ti = trapIndexAtPointer(col, row);
     if (ti >= 0) return { kind: 'trap', index: ti };
     var bi = blockIndexAt(col, row);
     if (bi >= 0) return { kind: 'block', index: bi };
