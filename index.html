@@ -1534,8 +1534,13 @@
   }
 
   /* 官图模式：完全锁定，不可编辑 */
+  /* 临时开关：开放「关卡」编辑权限（改完关卡后设回 false 关闭） */
+  var ALLOW_LEVEL_EDIT = true;
+
   function isEditLocked() {
-    return mapMode === 'official' || shareMode;
+    if (shareMode) return true;
+    if (ALLOW_LEVEL_EDIT) return false;    // 临时：关卡也可编辑
+    return mapMode === 'official';
   }
 
   function modeLabel(mode) {
