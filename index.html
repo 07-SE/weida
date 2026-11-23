@@ -465,8 +465,7 @@
       <span class="seg-title">地图模式</span>
       <div class="seg" id="mapmode-seg">
         <button type="button" data-mapmode="blank" class="on">空白</button>
-        <button type="button" data-mapmode="semi" class="">半官图</button>
-        <button type="button" data-mapmode="official">官图</button>
+        <button type="button" id="btn-tpl">模板</button>
       </div>
     </div>
 
@@ -487,6 +486,9 @@
         <button type="button" id="btn-share">生成分享链接</button>
       </div>
       <p class="seg-hint" id="share-state">未通关：分享前请亲自通关一次</p>
+      <div class="seg" style="margin-top:10px;">
+        <button type="button" id="btn-to-levels">关卡</button>
+      </div>
       <div class="confirm" id="clear-confirm" hidden="">
         <p>清空会删除你放置的所有元素（模板基底保留），确认？</p>
         <div class="seg">
@@ -545,9 +547,9 @@
       <div class="row"><span>P1 跳跃</span><b><kbd>W</kbd><kbd>空格</kbd></b></div>
       <div class="row"><span>P2 移动</span><b><kbd>←</kbd><kbd>→</kbd></b></div>
       <div class="row"><span>P2 跳跃</span><b><kbd>↑</kbd></b></div>
-      <div class="row"><span>编辑</span><b><kbd>E</kbd></b></div>
-      <div class="row"><span>模板</span><b><kbd>T</kbd><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></b></div>
-      <div class="row"><span>调试盒</span><b><kbd>B</kbd></b></div>
+      <div class="row key-edit"><span>编辑</span><b><kbd>E</kbd></b></div>
+      <div class="row key-edit"><span>模板</span><b><kbd>T</kbd></b></div>
+      <div class="row key-edit"><span>调试盒</span><b><kbd>B</kbd></b></div>
       <div class="row"><span>复位</span><b><kbd>Q</kbd><kbd>0</kbd><kbd>R</kbd></b></div>
     </div>
 
@@ -1612,8 +1614,50 @@
     ctx.restore();
   }
 
+  /* ---------- 模板循环（开门三步那 4 种底图） ---------- */
+  var STARTER_KINDS = ['grass', 'steps', 'trap', 'blank'];
+  var STARTER_NAMES = { grass: '草地', steps: '阶梯', trap: '带机关', blank: '纯空白' };
+  var starterCursor = 0;
+
+  function cycleStarterTemplate() {
+    if (!editorMode) { flash('先进入编辑再切换模板'); return; }
+    if (isEditLocked() || shareMode) return;
+    var kind = STARTER_KINDS[starterCursor % STARTER_KINDS.length];
+    starterCursor = (starterCursor + 1) % STARTER_KINDS.length;
+    applyStarter(kind);
+    flash('模板：' + (STARTER_NAMES[kind] || kind));
+  }
+
   /* ---------- 编辑态右栏精简 & 双人首局提示 ---------- */
   var elHudMode, elHudState, elHudHp, elHudApex, elHudVel, elHudDebug, elHudLegend, elEditKeys;
+
+  function applyPlayHud() {
+    var info = document.getElementById('hud-info');
+    if (info) info.hidden = false;
+    var ids = ['hud-budget', 'hud-progress', 'hud-tpl', 'hud-state', 'hud-apex', 'hud-vel'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && el.parentNode) el.parentNode.hidden = true;
+    }
+    var dbg = document.getElementById('hud-debug');
+    if (dbg) dbg.hidden = true;
+    var reach = document.getElementById('hud-reach');
+    if (reach) reach.hidden = true;
+    var ek = document.getElementById('edit-keys');
+    if (ek) ek.hidden = true;
+    var mm = document.getElementById('mapmode-block');
+    if (mm) mm.hidden = true;
+    var modeRow = document.getElementById('hud-mode');
+    if (modeRow && modeRow.parentNode) modeRow.parentNode.hidden = false;
+    var hpRow = document.getElementById('hud-hp');
+    if (hpRow && hpRow.parentNode) hpRow.parentNode.hidden = false;
+    var legend = document.getElementById('hud-legend');
+    if (legend) legend.hidden = false;
+    if (typeof document.querySelectorAll === 'function') {
+      var rows = document.querySelectorAll('.key-edit');
+      for (var r = 0; r < rows.length; r++) rows[r].hidden = true;
+    }
+  }
 
   function applyEditorHud() {
     if (!elHudMode) {
@@ -2851,18 +2895,12 @@
     }
     if (k === 't') {
       e.preventDefault();
+      if (editorMode) { cycleStarterTemplate(); return; }
       if (mapMode === 'official') {
         var olist = officialList(COLS);
         if (olist.length) loadOfficial(currentOfficial + 1);
         return;
       }
-      if (mapMode !== 'semi') {           // 空白画布不切换模板，避免把基底塞进空白图
-        flash('空白画布没有模板，请先在「半官图」里选基底');
-        return;
-      }
-      var tlist = sizeTemplates(COLS);
-      var tpos = templateOrderInSize();
-      if (tlist.length) loadTemplate(tlist[(tpos + 1) % tlist.length]);
       return;
     }
 
@@ -3059,6 +3097,15 @@
       if (m) m.hidden = true;
       try { localStorage.setItem('weida_duo_tip', '1'); } catch (e) {}
     });
+  }
+
+  var elBtnTpl = document.getElementById('btn-tpl');
+  if (elBtnTpl && typeof elBtnTpl.addEventListener === 'function') {
+    elBtnTpl.addEventListener('click', cycleStarterTemplate);
+  }
+  var elBtnToLevels = document.getElementById('btn-to-levels');
+  if (elBtnToLevels && typeof elBtnToLevels.addEventListener === 'function') {
+    elBtnToLevels.addEventListener('click', enterLevels);
   }
 
   if (elBackBtn && typeof elBackBtn.addEventListener === 'function') {
@@ -5674,9 +5721,13 @@
       if (elBlankHint) elBlankHint.hidden = true;
       if (elSharePanel) elSharePanel.hidden = true;
       hideHudInfo(true);
+      if (!editorMode && !shareMode) applyPlayHud();     // 试玩阶段也要显示操作/生命
       return;
     }
     hideHudInfo(false);
+    if (!shareMode) {
+      if (editorMode) applyEditorHud(); else applyPlayHud();
+    }
 
     if (elSharePanel) elSharePanel.hidden = true;
     if (elMapModeBlock) elMapModeBlock.hidden = false;   // 退出分享后恢复地图模式栏
@@ -5710,7 +5761,8 @@
     if (elBlankHint) elBlankHint.hidden = !(mapMode === 'blank' && (!startCell || !goalCell));
 
     syncMobileBar();
-    applyEditorHud();
+    if (editorMode && !shareMode) applyEditorHud();
+    else if (!shareMode) applyPlayHud();
     var toolsOn = editorMode && !isEditLocked();    // 官图锁定不给编辑工具
     if (elEditTools) elEditTools.hidden = !toolsOn;
     if (!toolsOn && elClearConfirm) elClearConfirm.hidden = true;
