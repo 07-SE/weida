@@ -83,6 +83,7 @@
     50%{transform:translateX(4px)} 75%{transform:translateX(-2px)} 100%{transform:translateX(0)}
   }
 
+  #hud-debug{ display:none !important; }
   #badge{
     position:absolute;
     top:10px; right:10px;
@@ -283,6 +284,19 @@
     box-shadow:inset 0 0 0 1px rgba(120,170,230,.35);
   }
   .back-btn:hover{ background:rgba(30,48,70,.9); color:#eaf2ff; }
+  .tut-btn{
+    position:absolute; right:44px; top:10px; z-index:9;
+    height:26px; padding:0 10px; border:0; border-radius:13px; cursor:pointer;
+    background:rgba(10,16,24,.7); color:#8fb4dc; font-size:12px;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.28);
+  }
+  .tut-btn:hover{ background:rgba(30,48,70,.9); color:#eaf2ff; }
+  .ghost-btn{
+    margin-top:6px; background:transparent; color:#93a9c0;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.22); font-size:12px;
+  }
+  .ghost-btn:hover{ color:#eaf2ff; }
+
   .modal{ position:relative; }
   .modal-close{
     position:absolute; top:8px; right:8px;
@@ -412,6 +426,7 @@
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
     <button type="button" class="back-btn" id="back-btn" title="返回首页" hidden>←</button>
+    <button type="button" class="tut-btn" id="tut-btn" title="教程">教程</button>
     <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
     <div class="key-hint" id="key-hint"></div>
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
@@ -434,6 +449,7 @@
       <p class="steps-done" id="steps-done" hidden>✓ 三步完成，可以进入完整编辑了</p>
       <div class="seg">
         <button type="button" id="start-card-ok" disabled>进入完整编辑</button>
+        <button type="button" id="start-card-skip" class="ghost-btn">直接进入编辑</button>
       </div>
     </div>
 
@@ -502,7 +518,7 @@
       <span class="seg-title">分享关卡</span>
       <p class="seg-hint" id="share-info">—</p>
       <div class="seg">
-        <button type="button" id="btn-remix">复刻到我的编辑器</button>
+        <button type="button" id="btn-remix">进入我的编辑器</button>
       </div>
       <p class="seg-hint">复刻后为你的独立副本，修改不会影响原链接</p>
     </div>
@@ -619,6 +635,17 @@
     <p class="rules-text" id="rules-text">—</p>
     <div class="seg">
       <button type="button" id="rules-start">开始游玩</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="tut-menu" hidden>
+  <div class="modal">
+    <p class="modal-title">教程</p>
+    <p class="modal-text">想看哪一部分？</p>
+    <div class="seg">
+      <button type="button" id="tut-edit">编辑教程</button>
+      <button type="button" id="tut-play">玩法教程</button>
     </div>
   </div>
 </div>
@@ -3140,6 +3167,51 @@
     refreshTouchLayout();
     syncMobileBar();
   });
+
+  var elTutBtn = document.getElementById('tut-btn');
+  if (elTutBtn && typeof elTutBtn.addEventListener === 'function') {
+    elTutBtn.addEventListener('click', function () {
+      var m = document.getElementById('tut-menu');
+      if (m) m.hidden = false;
+    });
+  }
+  var elTutEdit = document.getElementById('tut-edit');
+  if (elTutEdit && typeof elTutEdit.addEventListener === 'function') {
+    elTutEdit.addEventListener('click', function () {
+      var m = document.getElementById('tut-menu');
+      if (m) m.hidden = true;
+      editorUnlocked = false;
+      editorMode = true;
+      if (elHome) elHome.hidden = true;
+      if (elBackBtn) elBackBtn.hidden = false;
+      setMapMode('blank');
+      syncSegButtons();
+      updateHud();
+      var sm = document.getElementById('starter-modal');
+      if (sm) sm.hidden = false;
+    });
+  }
+  var elTutPlay = document.getElementById('tut-play');
+  if (elTutPlay && typeof elTutPlay.addEventListener === 'function') {
+    elTutPlay.addEventListener('click', function () {
+      var m = document.getElementById('tut-menu');
+      if (m) m.hidden = true;
+      showGuide();
+    });
+  }
+  var elStartCardSkip = document.getElementById('start-card-skip');
+  if (elStartCardSkip && typeof elStartCardSkip.addEventListener === 'function') {
+    elStartCardSkip.addEventListener('click', function () {
+      editorUnlocked = true;
+      lsSet('weida_unlocked', '1');
+      editorMode = true;
+      var sc = document.getElementById('start-card');
+      if (sc) sc.hidden = true;
+      syncSegButtons();
+      updateHud();
+      flash('已跳过教程，进入完整编辑');
+    });
+  }
 
   var elBlankTipOk = document.getElementById('blank-tip-ok');
   if (elBlankTipOk && typeof elBlankTipOk.addEventListener === 'function') {
