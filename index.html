@@ -379,6 +379,52 @@
     transition:opacity .18s ease;
   }
   .flash.on{ opacity:1; }
+  .level-select{
+    position:fixed; inset:0; z-index:85;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(900px 600px at 50% 30%, #16273a 0%, #0b0f15 62%, #06090d 100%);
+  }
+  .ls-box{
+    width:min(560px, 92vw); padding:26px 24px 20px; border-radius:16px;
+    background:rgba(17,24,34,.92);
+    box-shadow:0 0 0 1px rgba(120,170,230,.28), 0 30px 70px -28px rgba(0,0,0,.9);
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .ls-title{ margin:0; font-size:20px; font-weight:800; color:#eaf2ff; letter-spacing:.06em; }
+  .ls-sub{ margin:0; font-size:12px; color:#8fa3b8; }
+  .ls-legend{ display:flex; gap:16px; font-size:12px; color:#a9bccf; }
+  .ls-legend .lg{ display:flex; align-items:center; gap:6px; }
+  .ls-legend .lg i{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .ls-legend .ls-easy i{ background:#57d38c; box-shadow:0 0 8px rgba(87,211,140,.7); }
+  .ls-legend .ls-mid i{ background:#ffd166; box-shadow:0 0 8px rgba(255,209,102,.7); }
+  .ls-legend .ls-hard i{ background:#ff6b6b; box-shadow:0 0 8px rgba(255,107,107,.7); }
+  .ls-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ls-card{
+    display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+    padding:14px 14px 12px; border-radius:12px; cursor:pointer; text-align:left;
+    background:rgba(255,255,255,.04); color:#eaf2ff; font:inherit;
+    border:2px solid rgba(120,170,230,.3);
+  }
+  .ls-card b{ font-size:18px; }
+  .ls-card span{ font-size:14px; font-weight:700; }
+  .ls-card em{ font-style:normal; font-size:11px; color:#93a9c0; }
+  .ls-card:hover{ background:rgba(76,141,255,.16); transform:translateY(-1px); }
+  .ls-card.ls-easy{ border-color:rgba(87,211,140,.85); box-shadow:0 0 0 1px rgba(87,211,140,.25), 0 8px 22px -14px rgba(87,211,140,.8); }
+  .ls-card.ls-mid{ border-color:rgba(255,209,102,.9); box-shadow:0 0 0 1px rgba(255,209,102,.25), 0 8px 22px -14px rgba(255,209,102,.8); }
+  .ls-card.ls-hard{ border-color:rgba(255,107,107,.9); box-shadow:0 0 0 1px rgba(255,107,107,.25), 0 8px 22px -14px rgba(255,107,107,.8); }
+
+  .next-level{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:10px; z-index:8;
+    height:32px; padding:0 16px; border:0; border-radius:16px; cursor:pointer;
+    background:rgba(87,211,140,.95); color:#08170f; font-size:13px; font-weight:800;
+    box-shadow:0 8px 22px -8px rgba(87,211,140,.8);
+  }
+  .next-level:hover{ filter:brightness(1.08); }
+  .next-level.last{
+    background:rgba(255,255,255,.1); color:#93a9c0; cursor:default;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.25);
+  }
+
   .home{
     position:fixed; inset:0; z-index:80;
     display:flex; align-items:center; justify-content:center;
@@ -429,6 +475,7 @@
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
     <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
+    <button type="button" class="next-level" id="next-level" hidden>下一关 ▶</button>
     <div class="key-hint" id="key-hint"></div>
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
     <div class="toast" id="edit-toast" hidden="">按 E 键 切换编辑 / 游玩模式</div>
@@ -598,6 +645,20 @@
       <button type="button" class="starter" data-kind="trap">带机关<em>弹簧 + 尖刺</em></button>
       <button type="button" class="starter" data-kind="blank">纯空白<em>从零开始搭</em></button>
     </div>
+  </div>
+</div>
+
+<div class="level-select" id="level-select" hidden>
+  <div class="ls-box">
+    <p class="ls-title">选择关卡</p>
+    <p class="ls-sub" id="ls-sub">—</p>
+    <div class="ls-legend">
+      <span class="lg ls-easy"><i></i>简单</span>
+      <span class="lg ls-mid"><i></i>中等</span>
+      <span class="lg ls-hard"><i></i>困难</span>
+    </div>
+    <div class="ls-grid" id="ls-grid"></div>
+    <div class="seg"><button type="button" id="ls-back">返回首页</button></div>
   </div>
 </div>
 
@@ -1807,6 +1868,59 @@
     var m = document.getElementById('duo-tip');
     if (!m) return;
     m.hidden = false;
+  }
+
+  var LS_DIFF = ['easy', 'easy', 'mid', 'hard', 'hard'];
+  var LS_DIFF_LABEL = { easy: '简单', mid: '中等', hard: '困难' };
+
+  function openLevelSelect() {
+    var grid = document.getElementById('ls-grid');
+    var sub = document.getElementById('ls-sub');
+    if (sub) sub.textContent = (gameMode === 'solo' ? '单人挑战' : '双人合作') + ' · 共 ' + officialList(COLS).length + ' 关';
+    if (grid) {
+      grid.innerHTML = '';
+      var list = officialList(COLS);
+      for (var i = 0; i < list.length; i++) {
+        var def = OFFICIAL[list[i]];
+        var diff = LS_DIFF[i] || 'easy';
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'ls-card ls-' + diff;
+        b.innerHTML = '<b>' + (i + 1) + '</b><span>' + def.name + '</span><em>' + (LS_DIFF_LABEL[diff] || '') + '</em>';
+        (function (idx) {
+          b.addEventListener('click', function () { chooseLevel(idx); });
+        })(i);
+        grid.appendChild(b);
+      }
+    }
+    var ls = document.getElementById('level-select');
+    if (ls) ls.hidden = false;
+  }
+
+  function chooseLevel(i) {
+    var ls = document.getElementById('level-select');
+    if (ls) ls.hidden = true;
+    enterLevels();
+    loadOfficial(i);
+    syncNextLevelBtn();
+  }
+
+  function syncNextLevelBtn() {
+    var btn = document.getElementById('next-level');
+    if (!btn) return;
+    var show = (mapMode === 'official') && !editorMode && !shareMode;
+    btn.hidden = !show;
+    if (!show) return;
+    var total = officialList(COLS).length;
+    if (currentOfficial + 1 >= total) {
+      btn.textContent = '这是最后一关';
+      btn.disabled = true;
+      btn.classList.add('last');
+    } else {
+      btn.textContent = '下一关 ▶';
+      btn.disabled = false;
+      btn.classList.remove('last');
+    }
   }
 
   /* ---------- 返回首页 & 弹窗关闭叉 ---------- */
@@ -3240,13 +3354,13 @@
   if (elPlayDuo) elPlayDuo.addEventListener('click', function () {
     document.getElementById('play-mode').hidden = true;
     setMode('duo');
-    enterLevels();
+    openLevelSelect();
   });
   var elPlaySolo = document.getElementById('play-solo');
   if (elPlaySolo) elPlaySolo.addEventListener('click', function () {
     document.getElementById('play-mode').hidden = true;
     setMode('solo');
-    enterLevels();
+    openLevelSelect();
   });
   var elEditDirect = document.getElementById('edit-direct');
   if (elEditDirect) elEditDirect.addEventListener('click', function () {
@@ -3267,6 +3381,20 @@
     syncStartCard(); syncSegButtons(); updateHud();
     var sm = document.getElementById('starter-modal');
     if (sm) sm.hidden = false;
+  });
+
+  var elNextLevel = document.getElementById('next-level');
+  if (elNextLevel) elNextLevel.addEventListener('click', function () {
+    if (elNextLevel.disabled) return;
+    loadOfficial(currentOfficial + 1);
+    syncNextLevelBtn();
+    updateHud();
+  });
+  var elLsBack = document.getElementById('ls-back');
+  if (elLsBack) elLsBack.addEventListener('click', function () {
+    var ls = document.getElementById('level-select');
+    if (ls) ls.hidden = true;
+    if (elHome) elHome.hidden = false;
   });
 
   var elTutBtn = document.getElementById('tut-btn');
@@ -6088,6 +6216,7 @@
       elReach.classList.toggle('warn', st === '不可试玩');
     }
     syncSegButtons();
+    syncNextLevelBtn();
     elTpl.textContent = mapMode === 'official'
       ? (currentOfficial + 1) + '/' + officialList(COLS).length + ' ' + OFFICIAL[officialList(COLS)[currentOfficial]].name
       : (currentTemplate < 0
