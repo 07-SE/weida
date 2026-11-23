@@ -668,6 +668,9 @@
       </div>
     </div>
     <p class="modal-text">目标：两人配合到达终点。踩尖刺扣血，血量归零或掉出地图即挑战失败。</p>
+    <p class="modal-text"><b>双人专属机制</b>（单人模式没有）：</p>
+    <p class="modal-text">· <b>踩头跳</b>：站在队友头顶起跳，比单人跳得更高，能上去平时上不去的平台。</p>
+    <p class="modal-text">· <b>连坐</b>：队友踩到尖刺，你也会掉 <b>半滴血</b>（0.5）；所以别让队友送。</p>
     <p class="modal-text tip">小技巧：脚刚离开平台边缘的那一下（约 0.1 秒）仍然能起跳，踩空别慌，马上按跳。</p>
     <div class="seg">
       <button type="button" id="guide-start">开始游戏</button>
@@ -1124,6 +1127,41 @@
         { type: 'spring', col: 7, row: 9, axis: 'side', dist: 2 }
       ]
     },
+    {
+      name: '热身', size: 10, rank: -2,
+      start: { col: 0, row: 8 }, goal: { col: 9, row: 8 },
+      rows: [
+        '..........', '..........', '..........', '..........', '..........',
+        '..........', '..........', '..........', '..........', '..........'
+      ],
+      blocks: [
+        { col: 0, row: 9, size: 'full' }, { col: 1, row: 9, size: 'full' },
+        { col: 2, row: 9, size: 'full' }, { col: 3, row: 9, size: 'full' },
+        { col: 4, row: 9, size: 'full' }, { col: 5, row: 9, size: 'full' },
+        { col: 6, row: 9, size: 'full' }, { col: 7, row: 9, size: 'full' },
+        { col: 8, row: 9, size: 'full' }, { col: 9, row: 9, size: 'full' }
+      ],
+      traps: []
+    },
+    {
+      name: '小台阶', size: 10, rank: -1,
+      start: { col: 0, row: 8 }, goal: { col: 9, row: 8 },
+      rows: [
+        '..........', '..........', '..........', '..........', '..........',
+        '..........', '..........', '..........', '..........', '..........'
+      ],
+      blocks: [
+        { col: 0, row: 9, size: 'full' }, { col: 1, row: 9, size: 'full' },
+        { col: 2, row: 9, size: 'full' }, { col: 3, row: 9, size: 'full' },
+        { col: 4, row: 9, size: 'full' }, { col: 5, row: 9, size: 'full' },
+        { col: 6, row: 9, size: 'full' }, { col: 7, row: 9, size: 'full' },
+        { col: 8, row: 9, size: 'full' }, { col: 9, row: 9, size: 'full' },
+        { col: 4, row: 8, size: 'flat' }
+      ],
+      traps: [
+        { type: 'spike', col: 6, row: 8 }
+      ]
+    },
   ];
 
   /* ---------- DOM ---------- */
@@ -1446,7 +1484,7 @@
     for (var i = 0; i < OFFICIAL.length; i++) {
       if (OFFICIAL[i].size === size) out.push(i);
     }
-    out = out.slice(0, 3);          // 关卡入口：接入三张官图
+    out = out.slice(0, 5);          // 关卡入口：5 张（含 2 张教学关）
     out.sort(function (a, b) {
       var ra = typeof OFFICIAL[a].rank === 'number' ? OFFICIAL[a].rank : a;
       var rb = typeof OFFICIAL[b].rank === 'number' ? OFFICIAL[b].rank : b;
