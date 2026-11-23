@@ -451,7 +451,6 @@
       <p class="steps-done" id="steps-done" hidden>✓ 三步完成，可以进入完整编辑了</p>
       <div class="seg">
         <button type="button" id="start-card-ok" disabled>进入完整编辑</button>
-        <button type="button" id="start-card-skip" class="ghost-btn">直接进入编辑</button>
       </div>
     </div>
 
@@ -637,6 +636,28 @@
     <p class="rules-text" id="rules-text">—</p>
     <div class="seg">
       <button type="button" id="rules-start">开始游玩</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="play-mode" hidden>
+  <div class="modal">
+    <p class="modal-title">这一关几人玩？</p>
+    <p class="modal-text">双人模式才有踩头跳和连坐；单人更简单。</p>
+    <div class="seg">
+      <button type="button" id="play-duo">双人</button>
+      <button type="button" id="play-solo">单人</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="edit-mode" hidden>
+  <div class="modal">
+    <p class="modal-title">怎么开始编辑？</p>
+    <p class="modal-text">第一次来建议先看 30 秒的简单编辑教学。</p>
+    <div class="seg">
+      <button type="button" id="edit-direct">直接进入编辑</button>
+      <button type="button" id="edit-tutorial">简单编辑教学</button>
     </div>
   </div>
 </div>
@@ -3208,6 +3229,39 @@
     syncMobileBar();
   });
 
+  var elPlayDuo = document.getElementById('play-duo');
+  if (elPlayDuo) elPlayDuo.addEventListener('click', function () {
+    document.getElementById('play-mode').hidden = true;
+    setMode('duo');
+    enterLevels();
+  });
+  var elPlaySolo = document.getElementById('play-solo');
+  if (elPlaySolo) elPlaySolo.addEventListener('click', function () {
+    document.getElementById('play-mode').hidden = true;
+    setMode('solo');
+    enterLevels();
+  });
+  var elEditDirect = document.getElementById('edit-direct');
+  if (elEditDirect) elEditDirect.addEventListener('click', function () {
+    document.getElementById('edit-mode').hidden = true;
+    editorUnlocked = true;
+    lsSet('weida_unlocked', '1');
+    enterEdit();
+  });
+  var elEditTut = document.getElementById('edit-tutorial');
+  if (elEditTut) elEditTut.addEventListener('click', function () {
+    document.getElementById('edit-mode').hidden = true;
+    editorUnlocked = false;
+    enterEdit();
+    loadBlank(COLS);
+    setMapContent([], [], null, null);
+    cardTicks.start = false; cardTicks.goal = false;
+    mapVerified = false; playPromptShown = false;
+    syncStartCard(); syncSegButtons(); updateHud();
+    var sm = document.getElementById('starter-modal');
+    if (sm) sm.hidden = false;
+  });
+
   var elTutBtn = document.getElementById('tut-btn');
   if (elTutBtn && typeof elTutBtn.addEventListener === 'function') {
     elTutBtn.addEventListener('click', function () {
@@ -3287,7 +3341,10 @@
   }
   var elBtnToLevels = document.getElementById('btn-to-levels');
   if (elBtnToLevels && typeof elBtnToLevels.addEventListener === 'function') {
-    elBtnToLevels.addEventListener('click', enterLevels);
+    elBtnToLevels.addEventListener('click', function () {
+      var m = document.getElementById('play-mode');
+      if (m) m.hidden = false;
+    });
   }
 
   if (elBackBtn && typeof elBackBtn.addEventListener === 'function') {
@@ -3296,10 +3353,16 @@
   addModalClosers();
 
   if (elHomeEdit && typeof elHomeEdit.addEventListener === 'function') {
-    elHomeEdit.addEventListener('click', enterEdit);
+    elHomeEdit.addEventListener('click', function () {
+      var m = document.getElementById('edit-mode');
+      if (m) m.hidden = false;
+    });
   }
   if (elHomeLevels && typeof elHomeLevels.addEventListener === 'function') {
-    elHomeLevels.addEventListener('click', enterLevels);
+    elHomeLevels.addEventListener('click', function () {
+      var m = document.getElementById('play-mode');
+      if (m) m.hidden = false;
+    });
   }
 
   if (elStarterModal && typeof elStarterModal.addEventListener === 'function') {
