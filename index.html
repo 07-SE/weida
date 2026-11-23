@@ -1141,7 +1141,7 @@
   var elGuideModal = document.getElementById('guide-modal');
   var elGuideStart = document.getElementById('guide-start');
   var guideOpen = false;
-  var guideShownOnce = false;
+  var guideShownOnce = lsGet('weida_guide_seen') === '1';
   var elShareModal = document.getElementById('share-modal');
   var elShareResult = document.getElementById('share-result');
   var elShareUrl = document.getElementById('share-url');
@@ -1513,7 +1513,10 @@
   var startCardDismissed = false;    // 用户点过「知道了」
   var startCardFinished = false;     // 三步全部完成过
   var cardTicks = { start: false, goal: false };   // 只认"进入后自己放过"，复刻带进来的不算
-  var editorUnlocked = false;        // 三步全完成并点按钮后，才解锁完整编辑
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  var editorUnlocked = lsGet('weida_unlocked') === '1';
 
   function setStep(el, done) {
     if (!el) return;
@@ -1938,10 +1941,11 @@
   }
 
   function maybeShowGuide() {
-    if (guideShownOnce) return;        // 一局只弹一次：切关 / 切模板 / 按 123 T 都不再弹
+    if (guideShownOnce) return;
     if (editorMode || shareMode) return;
     if (!startCell || !goalCell) return;
     guideShownOnce = true;
+    lsSet('weida_guide_seen', '1');
     showGuide();
   }
 
@@ -2042,7 +2046,7 @@
     delete draftCache[draftKey(COLS)];   // 复刻内容不写进空白草稿，切回空白即纯净网格
     cardTicks.start = false;             // 复刻带进来的起终点不算"自己放的"
     cardTicks.goal = false;
-    editorUnlocked = false;              // 复刻后重新走三步
+    // 复刻不再重置解锁状态
     startCardFinished = false;
     if (elShareRules) elShareRules.hidden = true;   // 关掉可能还开着的分享规则弹窗
     resetPlayersForEditor();
@@ -3187,7 +3191,8 @@
     elStartCardOk.addEventListener('click', function () {
       if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
       editorUnlocked = true;
-      editorMode = true;                    // 进入完整编辑（编辑态）
+      lsSet('weida_unlocked', '1');
+      editorMode = true;
       setTimeout(maybeWarnEmptyCanvas, 60);
       winner = null;                        // 清掉试玩那一局的结算状态
       comboQueue.length = 0;
@@ -5426,6 +5431,20 @@
   }
 
   /* 当前工具放在这一格是否合法（预览用，和放置逻辑保持同一套判定） */
+  function moverPlaceableAt(col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+    if (tileAt(col, row)) return false;
+    var band = { x: col * CELL, y: row * CELL + (CELL - MOVE_H), w: CELL, h: MOVE_H };
+    var bb = blockInCell(col, row);
+    if (bb && overlap(band, blockRect(bb))) return false;
+    for (var i = 0; i < traps.length; i++) {
+      if (traps[i].type === 'mover') continue;
+      if (overlap(band, trapBox(traps[i]))) return false;
+    }
+    var space = moverFreeSpace(col, row, 'right', activeMoverRange);
+    return space.travel >= 2;
+  }
+
   function ghostPlaceable(col, row) {
     var tool = TOOLS[activeTool] || TOOLS[0];
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
@@ -5445,6 +5464,7 @@
       return standable(col, row) && !(startCell && startCell.col === col && startCell.row === row);
     }
     if (tool.kind === 'trap') {
+      if (tool.type === 'mover') return moverPlaceableAt(col, row);
       return !!resolveTrapSpot(tool.type, col, row);
     }
     return false;
