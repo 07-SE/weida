@@ -276,6 +276,23 @@
   .modal-text.tip{ color:#8fd3b6; }
   .rules-text{ margin:0; font-size:12.5px; line-height:1.75; color:#cfe0f5; }
   .rules-text b{ color:#7db3ff; }
+  .back-btn{
+    position:absolute; left:10px; top:10px; z-index:9;
+    width:28px; height:28px; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(10,16,24,.75); color:#9fc4ec; font-size:16px; font-weight:700;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.35);
+  }
+  .back-btn:hover{ background:rgba(30,48,70,.9); color:#eaf2ff; }
+  .modal{ position:relative; }
+  .modal-close{
+    position:absolute; top:8px; right:8px;
+    width:24px; height:24px; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(255,255,255,.07); color:#9fb3c8; font-size:13px; line-height:1;
+    box-shadow:inset 0 0 0 1px rgba(120,170,230,.25);
+  }
+  .modal-close:hover{ background:rgba(255,90,90,.25); color:#ffd7d7; }
+  .modal .modal-title{ padding-right:26px; }
+
   .rules-btn{
     position:absolute; right:10px; top:10px; z-index:6;
     width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
@@ -394,6 +411,7 @@
   <div id="stage" style="width: 605px; height: 605px;">
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
+    <button type="button" class="back-btn" id="back-btn" title="返回首页" hidden>←</button>
     <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
     <div class="key-hint" id="key-hint"></div>
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
@@ -1085,6 +1103,7 @@
   var elHpBar = document.getElementById('hp-bar');
   var elHpP1 = document.getElementById('hp-p1');
   var elHpP2 = document.getElementById('hp-p2');
+  var elBackBtn = document.getElementById('back-btn');
   var elHome = document.getElementById('home');
   var elHomeEdit = document.getElementById('home-edit');
   var elHomeLevels = document.getElementById('home-levels');
@@ -1577,14 +1596,64 @@
     ctx.restore();
   }
 
+  /* ---------- 返回首页 & 弹窗关闭叉 ---------- */
+  function closeAllModals() {
+    var ids = ['starter-modal', 'share-send', 'share-result', 'share-rules', 'guide-modal', 'share-modal', 'size-confirm', 'clear-confirm'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el) el.hidden = true;
+    }
+  }
+
+  function goHome() {
+    if (mapMode === 'blank' && !isEditLocked() && typeof saveDraft === 'function') {
+      try { saveDraft(); } catch (e) {}
+    }
+    closeAllModals();
+    editorMode = false;
+    winner = null;
+    if (elHome) elHome.hidden = false;
+    if (elBackBtn) elBackBtn.hidden = true;
+    updateHud();
+  }
+
+  function addModalClosers() {
+    if (typeof document.querySelectorAll !== 'function') return;
+    var masks = document.querySelectorAll('.modal-mask');
+    for (var i = 0; i < masks.length; i++) {
+      var mask = masks[i];
+      if (!mask || mask.id === 'mobile-block') continue;
+      if (typeof mask.querySelector !== 'function') continue;
+      var box = mask.querySelector('.modal');
+      if (!box) continue;
+      if (box.querySelector && box.querySelector('.modal-close')) continue;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'modal-close';
+      btn.textContent = '✕';
+      (function (m) {
+        btn.addEventListener('click', function () {
+          m.hidden = true;
+          clearKeys();
+        });
+      })(mask);
+      box.appendChild(btn);
+    }
+  }
+
   /* ---------- 首页双入口 ---------- */
   function enterEdit() {
     if (elHome) elHome.hidden = true;
+    if (elBackBtn) elBackBtn.hidden = false;
     if (COLS !== 10) setCanvasGeometry(10);
-    setMapMode('blank');
+    if (gameMode !== 'solo') setMode('solo');
     editorMode = true;
-    editorUnlocked = false;
-    if (gameMode !== 'solo') setMode('solo');    // 编辑默认单人
+    if (editorUnlocked) {           // 已解锁：直接回完整编辑
+      syncSegButtons();
+      updateHud();
+      return;
+    }
+    setMapMode('blank');
     maybeShowStarter();
     syncSegButtons();
     updateHud();
@@ -1592,6 +1661,7 @@
 
   function enterLevels() {
     if (elHome) elHome.hidden = true;
+    if (elBackBtn) elBackBtn.hidden = false;
     if (COLS !== 10) setCanvasGeometry(10);
     setMapMode('official');
     syncSegButtons();
@@ -2934,6 +3004,11 @@
     syncMobileBar();
   });
 
+  if (elBackBtn && typeof elBackBtn.addEventListener === 'function') {
+    elBackBtn.addEventListener('click', goHome);
+  }
+  addModalClosers();
+
   if (elHomeEdit && typeof elHomeEdit.addEventListener === 'function') {
     elHomeEdit.addEventListener('click', enterEdit);
   }
@@ -3463,10 +3538,7 @@
     }
 
     if (type === 'mover') {
-      if (!activeMoverDir) {
-        flash('请先选择移动方向（向左 / 向右）');
-        return false;
-      }
+      activeMoverDir = 'right';
       if (tileAt(col, row)) { flash(MSG.locked); return false; }
 
       // 只检测移动平台自身高度区间（格子底部 16px），同格其它高度区域不拦截
@@ -5067,22 +5139,9 @@
     if (tool.kind === 'trap' && tool.type === 'mover') {
       ctx.fillStyle = 'rgba(150,170,195,.9)';
       ctx.font = '10px system-ui,sans-serif';
-      ctx.fillText('方向', PAL.x, mountChipRect(0).y + 11);
-      var DIRS = [['left', '向左'], ['right', '向右']];
-      for (var dd = 0; dd < 2; dd++) {
-        var dc = mountChipRect(dd);
-        var onDir = activeMoverDir === DIRS[dd][0];
-        ctx.fillStyle = onDir ? 'rgba(79,209,255,.28)' : 'rgba(255,255,255,.05)';
-        roundRect(dc.x, dc.y, dc.w, dc.h, 5);
-        ctx.fill();
-        ctx.strokeStyle = onDir ? 'rgba(120,220,255,.95)' : 'rgba(140,170,210,.22)';
-        ctx.stroke();
-        ctx.fillStyle = onDir ? '#eaf2ff' : '#b9c7d9';
-        ctx.font = '10px system-ui,sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(DIRS[dd][1], dc.x + dc.w / 2, dc.y + dc.h / 2);
-        ctx.textAlign = 'left';
-      }
+      ctx.font = '11px system-ui,sans-serif';
+      ctx.fillStyle = 'rgba(163,183,206,.95)';
+      ctx.fillText('固定向右 · 放哪一列就从哪开始跑', PAL.x, mountChipRect(0).y + 14);
 
       ctx.fillStyle = 'rgba(150,170,195,.9)';
       ctx.font = '10px system-ui,sans-serif';
@@ -5104,7 +5163,7 @@
 
       ctx.fillStyle = activeMoverDir ? 'rgba(255,170,120,.95)' : 'rgba(255,210,120,.95)';
       ctx.font = '10px system-ui,sans-serif';
-      ctx.fillText(activeMoverDir ? '移动平台不支持侧面机关' : '请先选择移动方向', PAL.x, distChipRect(0).y + 47);
+      ctx.fillText('移动平台上不能再放机关', PAL.x, distChipRect(0).y + 47);
     }
 
     var hintY = distChipRect(0).y + 36;
@@ -5266,12 +5325,8 @@
       var startX = col * CELL;
       var py = row * CELL + 48;
 
-      if (!activeMoverDir) {
-        // 还没选方向：只标起点，提示先选方向
-        ctx.fillStyle = 'rgba(79,209,255,.85)';
-        ctx.fillRect(startX + 1, py, CELL - 2, 16);
-      } else {
-        var sign = activeMoverDir === 'left' ? -1 : 1;
+      {
+        var sign = 1;
         var endX = Math.max(0, Math.min(MAP - CELL, startX + sign * activeMoverRange * CELL));
         var bx = Math.min(startX, endX);
         var bw = Math.abs(endX - startX) + CELL;
