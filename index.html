@@ -4576,10 +4576,11 @@
 
     var mount = t.mount || 'top';
     if (mount === 'left' || mount === 'right') {
-      if (t.type === 'spike') {
-        return { x: t.x + 1, y: t.y + 2, w: t.w - 2, h: t.h - 4 };
-      }
-      return { x: t.x + 1, y: t.y + 2, w: t.w - 2, h: t.h - 4 };
+      var pad = Math.max(0, 22 - t.w);
+      var bx = t.x, bw = t.w;
+      if (mount === 'left') { bx -= pad; bw += pad; }
+      else { bw += pad; }
+      return { x: bx + 1, y: t.y + 2, w: bw - 2, h: t.h - 4 };
     }
     if (t.type === 'spike') {
       return { x: t.x + 2, y: t.y + 1, w: t.w - 4, h: t.h - 2 };   // 40×24 → 36×22
