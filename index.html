@@ -594,6 +594,15 @@
   </div>
 </div>
 
+<div class="modal-mask" id="blank-tip" hidden>
+  <div class="modal">
+    <p class="modal-title">空白画布：先铺格子</p>
+    <p class="modal-text">空白画布没有任何地面，人物会直接掉下去。</p>
+    <p class="modal-text">请先用左侧 <b>地形</b> 工具在底部铺一排格子，再放机关、起点和终点。</p>
+    <div class="seg"><button type="button" id="blank-tip-ok">明白了</button></div>
+  </div>
+</div>
+
 <div class="modal-mask" id="duo-tip" hidden>
   <div class="modal">
     <p class="modal-title">双人玩法（第一次双人局）</p>
@@ -1517,7 +1526,22 @@
     return cardTicks.start && cardTicks.goal && !!mapVerified;
   }
 
+  function ensureMarkersSupported() {
+    var changed = false;
+    if (startCell && !standable(startCell.col, startCell.row)) {
+      startCell = null; cardTicks.start = false; changed = true;
+      flash('起点下面的格子没了，起点已移除');
+    }
+    if (goalCell && !standable(goalCell.col, goalCell.row)) {
+      goalCell = null; cardTicks.goal = false; changed = true;
+      flash('终点下面的格子没了，终点已移除');
+    }
+    if (changed) mapVerified = false;
+    return changed;
+  }
+
   function syncStartCard() {
+    if (!shareMode && !isEditLocked()) ensureMarkersSupported();
     var inEditor = editorMode && !isEditLocked() && !shareMode;
     if (elDotStart) elDotStart.classList.toggle('done', cardTicks.start);
     if (elDotGoal) elDotGoal.classList.toggle('done', cardTicks.goal);
@@ -1797,12 +1821,15 @@
     loadBlank(COLS);
     // 起终点一律不给，必须用户自己放，这样三步才有意义
     setMapContent(bs, ts, null, null);
-    startCardDismissed = false;
-    editorUnlocked = false;
-    editorMode = true;                 // 选完模板直接进编辑态
+    if (!editorUnlocked) startCardDismissed = false;
+    editorMode = true;
     syncSegButtons();
     syncStartCard();
     updateHud();
+    if (kind === 'blank') {
+      var bt = document.getElementById('blank-tip');
+      if (bt) bt.hidden = false;
+    }
     flash(kind === 'blank' ? '先铺地面，再放起点和终点' : '底图好了 · 放起点 → 放终点 → 按 E 通关');
   }
 
@@ -3089,6 +3116,14 @@
     refreshTouchLayout();
     syncMobileBar();
   });
+
+  var elBlankTipOk = document.getElementById('blank-tip-ok');
+  if (elBlankTipOk && typeof elBlankTipOk.addEventListener === 'function') {
+    elBlankTipOk.addEventListener('click', function () {
+      var m = document.getElementById('blank-tip');
+      if (m) m.hidden = true;
+    });
+  }
 
   var elDuoTipOk = document.getElementById('duo-tip-ok');
   if (elDuoTipOk && typeof elDuoTipOk.addEventListener === 'function') {
@@ -5206,7 +5241,12 @@
         var iwT = Math.max(10, defT.w * 0.22);
         var ihT = Math.max(8, defT.h * 0.22);
         ctx.fillStyle = onT ? '#cfe0f5' : '#7e8ea3';
-        ctx.fillRect(chip.x + chip.w / 2 - iwT / 2, chip.y + chip.h / 2 - ihT / 2, iwT, ihT);
+        ctx.fillRect(chip.x + chip.w / 2 - iwT / 2, chip.y + 9 - ihT / 2, iwT, ihT);
+        ctx.font = '600 9px system-ui,sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = onT ? '#dbe8f7' : '#8fa3b8';
+        ctx.fillText(defT.label, chip.x + chip.w / 2, chip.y + chip.h - 5);
+        ctx.textAlign = 'left';
       }
     }
 
@@ -5335,7 +5375,7 @@
   /* 编辑器附加层：悬停预览 / 红色回弹（收起面板时同样生效） */
   function terrainChipRect(i) {
     var base = paletteRect(TOOLS.length - 1);
-    var w = 30, h = 26, gap = 8;
+    var w = 34, h = 34, gap = 8;
     return { x: PAL.x + i * (w + gap), y: base.y + base.h + 10, w: w, h: h };
   }
 
