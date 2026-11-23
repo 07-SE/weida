@@ -2955,6 +2955,9 @@
       if (!startCardReady()) { flash('先把三步做完：放起点 → 放终点 → 试玩通关'); return; }
       editorUnlocked = true;
       editorMode = true;                    // 进入完整编辑（编辑态）
+      winner = null;                        // 清掉试玩那一局的结算状态
+      comboQueue.length = 0;
+      resetPlayersForEditor();
       if (elStartCard) elStartCard.hidden = true;
       syncSegButtons();
       updateHud();
@@ -4998,6 +5001,12 @@
       ctx.fillStyle = active ? 'rgba(234,242,255,.9)' : 'rgba(150,166,184,.85)';
       ctx.font = '600 10px ui-monospace,Consolas,monospace';
       ctx.fillText(String(i + 1), r.x + 4, r.y + 10);
+
+      if (TOOLS[i].kind !== 'terrain') {
+        ctx.fillStyle = active ? '#eaf2ff' : '#b9c7d9';
+        ctx.font = '600 11px system-ui,sans-serif';
+        ctx.fillText(TOOLS[i].label, r.x + 26, r.y + r.h / 2);
+      }
     }
 
     var tool = TOOLS[activeTool] || TOOLS[0];
