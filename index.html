@@ -318,9 +318,9 @@
   .key-hint{
     position:absolute; left:10px; bottom:10px; z-index:6;
     padding:5px 9px; border-radius:8px;
-    background:rgba(9,14,21,.55);
-    box-shadow:inset 0 0 0 1px rgba(120,170,230,.18);
-    color:#9fb3c8; font-size:10.5px; line-height:1.5; letter-spacing:.02em;
+    background:linear-gradient(180deg, rgba(255,199,92,.96), rgba(255,178,58,.96));
+    box-shadow:0 6px 20px rgba(255,183,66,.45), inset 0 0 0 1px rgba(255,255,255,.35);
+    color:#241706; font-size:12.5px; font-weight:700; line-height:1.5; letter-spacing:.02em;
     pointer-events:none; white-space:nowrap;
   }
   .starter-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -558,6 +558,7 @@
     <div class="divider"></div>
 
     <p class="seg-hint" id="edit-keys" hidden>模板 T · 1 2 3 4</p>
+    <p class="seg-hint" id="level-keys" hidden>关卡切换：1 2 3 4 5</p>
 
     <div class="legend" id="hud-legend">
       <div class="row"><span>P1 移动</span><b><kbd>A</kbd><kbd>D</kbd></b></div>
@@ -643,7 +644,7 @@
 <div class="modal-mask" id="play-mode" hidden>
   <div class="modal">
     <p class="modal-title">这一关几人玩？</p>
-    <p class="modal-text">双人模式才有踩头跳和连坐；单人更简单。</p>
+    <p class="modal-text">双人模式才有踩头跳和连坐机制。</p>
     <div class="seg">
       <button type="button" id="play-duo">双人</button>
       <button type="button" id="play-solo">单人</button>
@@ -1760,6 +1761,8 @@
     if (reach) reach.hidden = true;
     var ek = document.getElementById('edit-keys');
     if (ek) ek.hidden = true;
+    var lk = document.getElementById('level-keys');
+    if (lk) lk.hidden = (mapMode !== 'official');
     var mm = document.getElementById('mapmode-block');
     if (mm) mm.hidden = true;
     var modeRow = document.getElementById('hud-mode');
@@ -3826,6 +3829,17 @@
     };
   }
 
+  function trapAtCellSide(col, row) {
+    for (var i = 0; i < traps.length; i++) {
+      var t = traps[i];
+      if (t.type === 'mover') continue;
+      if (t.mount !== 'left' && t.mount !== 'right') continue;
+      if (t.col === col && t.row === row) return true;
+      if (Math.abs(t.col - col) <= 1 && t.row === row) return true;
+    }
+    return false;
+  }
+
   /* 把指针所在格子解析成实际落点：空格子会吸附到相邻方块的某一面 */
   function resolveTrapSpot(type, col, row) {
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
@@ -3942,7 +3956,15 @@
     var spot = resolveTrapSpot(type, col, row);
     var pv = spot;
     if (!pv) { flash(MSG.noSpace); return false; }
-    if (trapIndexAt(pv.col, pv.row) >= 0) { flash(MSG.noSpace); return false; }
+    if (trapIndexAt(pv.col, pv.row) >= 0) {
+      var ex = traps[trapIndexAt(pv.col, pv.row)];
+      if (ex && (ex.mount === 'left' || ex.mount === 'right')) {
+        flash('这个方块左右只能挂一个机关，先把原来的删掉');
+      } else {
+        flash(MSG.noSpace);
+      }
+      return false;
+    }
     if (boxHitsPlayer(pv.rect)) { flash(MSG.noSpace); return false; }
 
     var t = {
@@ -3987,6 +4009,10 @@
   function placeBlockAt(size, col, row) {
     if (isEditLocked()) { flash('官图关卡不可编辑'); return false; }
     if (col < 0 || col >= COLS || row < 0 || row >= ROWS) { flash(MSG.bounds); return false; }
+    if (trapIndexAt(col, row) >= 0 || trapAtCellSide(col, row)) {
+      flash('这一格有机关，先右键删掉机关才能放格子');
+      return false;
+    }
     var rect = blockRectFor(size, col, row);
 
     if (blockHitsMover(rect)) {
