@@ -5497,7 +5497,7 @@
       x: PAL.x - 8,
       y: PAL.y - 30,
       w: 2 * PAL.colW + PAL.gap + 18,
-      h: rows * (PAL.rowH + PAL.gap) + 142 + (helpOpen ? 92 : 0)
+      h: rows * (PAL.rowH + PAL.gap) + 142 + (helpOpen ? 126 : 0)
     };
   }
 
@@ -5680,7 +5680,7 @@
 
       ctx.fillStyle = activeMoverDir ? 'rgba(255,170,120,.95)' : 'rgba(255,210,120,.95)';
       ctx.font = '10px system-ui,sans-serif';
-      ctx.fillText('移动平台上不能再放机关', PAL.x, distChipRect(0).y + 47);
+      ctx.fillText('移动平台上不能再放机关', PAL.x, distChipRect(0).y + 44);
     }
 
     // 底部「操作说明」按钮 + 展开内容
