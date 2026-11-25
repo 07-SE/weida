@@ -582,6 +582,7 @@
   
 
 
+
   /* ================= 右栏 v2（有厚度、有交互） ================= */
   .hud{
     background:
@@ -814,6 +815,78 @@
   .starter:hover{ background:rgba(91,108,255,.16); box-shadow:inset 0 0 0 1px rgba(91,108,255,.6); }
   .starter em{ font-size:11px; color:var(--text-low); }
 
+
+</style>
+<style>
+/* ---------- 通关结果卡 ---------- */
+  .win-card{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    z-index:9; width:min(360px, 78%);
+    padding:22px 22px 18px; border-radius:16px;
+    background:linear-gradient(180deg, rgba(34,54,78,.96), rgba(13,26,43,.97));
+    box-shadow:
+      inset 0 1px 0 rgba(190,220,255,.22),
+      inset 0 0 0 1px rgba(140,180,225,.24),
+      0 30px 70px -30px rgba(0,0,0,.95);
+    display:flex; flex-direction:column; gap:16px;
+    animation:winIn .38s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes winIn{ from{ opacity:0; transform:translate(-50%,-46%) scale(.96) } to{ opacity:1; transform:translate(-50%,-50%) scale(1) } }
+  .win-kicker{ margin:0; text-align:center; font-size:22px; font-weight:800; color:#eafff4; letter-spacing:-.01em; text-shadow:0 0 24px rgba(87,211,140,.45); }
+  .win-stats{ display:flex; justify-content:space-between; gap:8px; }
+  .win-stat{ flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 4px; border-radius:10px;
+    background:rgba(255,255,255,.045); box-shadow:inset 0 0 0 1px rgba(140,180,225,.16); }
+  .win-stat b{ font-size:16px; font-weight:800; color:var(--text-hi); font-variant-numeric:tabular-nums; }
+  .win-stat span{ font-size:10.5px; color:var(--text-low); }
+  .win-actions{ display:flex; gap:8px; }
+  .win-btn{
+    flex:1; height:36px; border:0; border-radius:10px; cursor:pointer; font:inherit; font-size:12.5px; font-weight:700;
+    color:var(--text-mid);
+    background:linear-gradient(180deg, rgba(64,92,126,.5), rgba(22,36,54,.9));
+    box-shadow:inset 0 1px 0 rgba(205,232,255,.18), 0 4px 10px -6px rgba(0,0,0,.9);
+    transition:transform .12s cubic-bezier(.2,.8,.2,1), filter .16s ease, box-shadow .16s ease;
+  }
+  .win-btn:hover{ filter:brightness(1.16); transform:translateY(-1px); }
+  .win-btn:active{ transform:translateY(0) scale(.98); }
+  .win-btn.primary{ color:#221704; background:linear-gradient(180deg, #ffe08a, #f0b53a);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 10px 22px -12px rgba(255,209,102,.95); }
+  .win-btn.ghost{ color:var(--text-low); background:transparent; box-shadow:inset 0 0 0 1px rgba(140,180,225,.2); }
+  .win-btn.ghost:hover{ color:var(--text-hi); }
+
+  .opt-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; perspective:800px; }
+  .opt{
+    position:relative; display:flex; flex-direction:column; gap:5px; align-items:flex-start;
+    padding:16px 14px 14px; border-radius:14px; cursor:pointer; text-align:left; font:inherit;
+    color:var(--text-hi);
+    background:linear-gradient(180deg, rgba(50,74,104,.55), rgba(18,32,48,.9));
+    box-shadow:inset 0 1px 0 rgba(200,230,255,.18), inset 0 0 0 1px rgba(140,180,225,.18), 0 8px 22px -16px rgba(0,0,0,.95);
+    transform:translate3d(calc(var(--px,0) * 7px), calc(var(--py,0) * 6px), 0)
+              rotateX(calc(var(--py,0) * -5deg)) rotateY(calc(var(--px,0) * 6deg));
+    transition:transform .18s cubic-bezier(.16,1,.3,1), box-shadow .2s ease;
+    will-change:transform;
+  }
+  .opt:hover{
+    box-shadow:inset 0 1px 0 rgba(220,240,255,.3), inset 0 0 0 1px rgba(150,190,255,.45), 0 18px 34px -20px rgba(0,0,0,.98);
+  }
+  .opt b{ font-size:15px; font-weight:800; }
+  .opt em{ font-style:normal; font-size:11.5px; line-height:1.55; color:var(--text-low); }
+  .opt .opt-tag{ display:flex; gap:5px; flex-wrap:wrap; margin-top:2px; }
+  .opt .opt-tag i{ font-style:normal; font-size:10px; padding:2px 6px; border-radius:999px;
+    background:rgba(91,108,255,.18); color:#a8b8ff; box-shadow:inset 0 0 0 1px rgba(120,150,255,.3); }
+  .opt.primary{ background:linear-gradient(180deg, rgba(126,150,255,.42), rgba(52,64,170,.55)); }
+  .opt-go{ position:absolute; right:12px; bottom:12px; font-size:11px; color:#bcd0ff; opacity:0; transform:translateX(-4px); transition:.18s ease; }
+  .opt:hover .opt-go{ opacity:1; transform:translateX(0); }
+
+  .ls-grid{ perspective:900px; }
+  .ls-card{
+    transform:translate3d(calc(var(--px,0) * 8px), calc(var(--py,0) * 7px), 0)
+              rotateX(calc(var(--py,0) * -5deg)) rotateY(calc(var(--px,0) * 6deg));
+    transition:transform .18s cubic-bezier(.16,1,.3,1), box-shadow .2s ease, background .2s ease;
+    will-change:transform;
+  }
+
+  
+
 </style>
 </head>
 <body>
@@ -828,6 +901,20 @@
     <canvas id="game" width="640" height="640" aria-label="10×10 关卡画布" style="cursor: crosshair;"></canvas>
     <div id="badge">10×10 · 0.95×</div>
     <button type="button" class="rules-btn" id="rules-btn" title="玩法说明">?</button>
+
+    <div class="win-card" id="win-card" hidden>
+      <p class="win-kicker" id="win-title">通关成功</p>
+      <div class="win-stats">
+        <div class="win-stat"><b id="win-time">—</b><span>用时</span></div>
+        <div class="win-stat"><b id="win-dmg">0</b><span>受伤次数</span></div>
+        <div class="win-stat"><b id="win-hp">4</b><span>剩余血量</span></div>
+      </div>
+      <div class="win-actions">
+        <button type="button" class="win-btn primary" id="win-next">下一关 ▶</button>
+        <button type="button" class="win-btn" id="win-retry">再来一次</button>
+        <button type="button" class="win-btn ghost" id="win-share">做成我的图</button>
+      </div>
+    </div>
     <div class="key-hint" id="key-hint"></div>
     <div class="toast" id="semi-toast" hidden="">半官图：请先放好起点与终点，再开始游玩</div>
     <div class="toast" id="edit-toast" hidden="">按 E 键 切换编辑 / 游玩模式</div>
@@ -1076,23 +1163,43 @@
 </div>
 
 <div class="modal-mask" id="play-mode" hidden>
-  <div class="modal">
+  <div class="modal guide">
     <p class="modal-title">这一关几人玩？</p>
-    <p class="modal-text">双人模式才有踩头跳和连坐机制。</p>
-    <div class="seg">
-      <button type="button" id="play-duo">双人</button>
-      <button type="button" id="play-solo">单人</button>
+    <p class="modal-text">两个人一块键盘，才会出现"互相甩锅"的瞬间。</p>
+    <div class="opt-grid">
+      <button type="button" class="opt primary follow" id="play-duo">
+        <b>双人合作</b>
+        <em>WASD + 方向键，同屏两个人</em>
+        <span class="opt-tag"><i>踩头跳</i><i>连坐 −0.5</i></span>
+        <span class="opt-go">开始 ▸</span>
+      </button>
+      <button type="button" class="opt follow" id="play-solo">
+        <b>单人挑战</b>
+        <em>一个人跑完，更稳但少了互坑</em>
+        <span class="opt-tag"><i>更稳</i><i>无连坐</i></span>
+        <span class="opt-go">开始 ▸</span>
+      </button>
     </div>
   </div>
 </div>
 
 <div class="modal-mask" id="edit-mode" hidden>
-  <div class="modal">
+  <div class="modal guide">
     <p class="modal-title">怎么开始编辑？</p>
-    <p class="modal-text">第一次来建议先看 30 秒的简单编辑教学。</p>
-    <div class="seg">
-      <button type="button" id="edit-direct">直接进入编辑</button>
-      <button type="button" id="edit-tutorial">简单编辑教学</button>
+    <p class="modal-text">两条路都能进编辑器，区别是"要不要人带一遍"。</p>
+    <div class="opt-grid">
+      <button type="button" class="opt follow" id="edit-tutorial">
+        <b>简单编辑教学</b>
+        <em>三步走一遍：放起点 → 放终点 → 按 E 通关</em>
+        <span class="opt-tag"><i>约 30 秒</i><i>推荐第一次</i></span>
+        <span class="opt-go">开始 ▸</span>
+      </button>
+      <button type="button" class="opt follow" id="edit-direct">
+        <b>直接进入编辑</b>
+        <em>六个工具全开，先铺地面再放机关</em>
+        <span class="opt-tag"><i>全部工具</i><i>老手</i></span>
+        <span class="opt-go">进入 ▸</span>
+      </button>
     </div>
   </div>
 </div>
@@ -1756,6 +1863,8 @@
   var held = new Set();             // 当前按住的原始按键
   var comboQueue = [];              // 连坐队列
   var winner = null;                // 先到终点的人
+  var roundStartAt = 0;             // 本局开始时间
+  var hurtCount = 0;                // 本局受伤次数
   var showBoxes = false;
 
   var gameMode = 'duo';             // 'solo' | 'duo'（PC 默认双人）
@@ -2836,6 +2945,7 @@
 
   /* 载入官图成品关卡（完整地形 + 全套机关 + 固定起终点，锁定不可编辑） */
   function loadOfficial(index, silent) {
+    hideWinCard();
     var list = officialList(COLS);
     if (!list.length) return;
     currentOfficial = ((index % list.length) + list.length) % list.length;
@@ -3478,6 +3588,9 @@
   }
 
   function respawn() {
+    roundStartAt = Date.now();
+    hurtCount = 0;
+    hideWinCard();
     var n = gameMode === 'solo' ? 1 : players.length;
     var protect = gameMode === 'duo';
 
@@ -3534,6 +3647,7 @@
 
     if (k === 'e') {
       e.preventDefault();
+      hideWinCard();
       if (isEditLocked()) { flash('官图关卡不可编辑，仅可游玩'); return; }
       editorMode = !editorMode;
       if (editorMode) {
@@ -3778,6 +3892,41 @@
       if (!raf) raf = requestAnimationFrame(apply);
     });
   })();
+
+  (function bindFollow() {
+    function attach(el) {
+      if (!el || el._followBound) return;
+      el._followBound = true;
+      el.addEventListener('mousemove', function (e) {
+        var r = el.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        el.style.setProperty('--px', (px * 2).toFixed(3));
+        el.style.setProperty('--py', (py * 2).toFixed(3));
+      });
+      el.addEventListener('mouseleave', function () {
+        el.style.setProperty('--px', '0');
+        el.style.setProperty('--py', '0');
+      });
+    }
+    var list = document.querySelectorAll('.follow, .ls-card');
+    for (var i = 0; i < list.length; i++) attach(list[i]);
+  })();
+
+  var elWinNext = document.getElementById('win-next');
+  if (elWinNext) elWinNext.addEventListener('click', function () {
+    hideWinCard();
+    loadOfficial(currentOfficial + 1);
+    syncNextLevelBtn();
+    updateHud();
+  });
+  var elWinRetry = document.getElementById('win-retry');
+  if (elWinRetry) elWinRetry.addEventListener('click', function () {
+    hideWinCard();
+    restartRound();
+  });
+  var elWinShare = document.getElementById('win-share');
+  if (elWinShare) elWinShare.addEventListener('click', copyCurrentToEditor);
 
   var elPlayDuo = document.getElementById('play-duo');
   if (elPlayDuo) elPlayDuo.addEventListener('click', function () {
@@ -5169,6 +5318,7 @@
   function damagePlayer(pl, amount, force) {
     if (!force && pl.invincible > 0) return false;
     if (amount > 0) { pushDamageFloat(pl, amount); flashHpBar(); }
+    if (amount > 0) hurtCount++;
     pl.hp -= amount;
     pl.invincible = INVINCIBLE_TIME;
     if (pl.hp <= 0) {
@@ -5542,11 +5692,60 @@
         }
         winner = p;
         p.wins++;
-        flash(gameMode === 'solo' ? '通关成功！按 R 重开' : (p.name + ' 获胜！按 R 重开'));
+        flash(gameMode === 'solo' ? '通关成功！' : (p.name + ' 获胜！'));
+        showWinCard(p);
         updateHud();
         return;
       }
     }
+  }
+
+  /* ---------- 通关结果卡 ---------- */
+  function hideWinCard() {
+    var el = document.getElementById('win-card');
+    if (el) el.hidden = true;
+  }
+
+  function showWinCard(p) {
+    var el = document.getElementById('win-card');
+    if (!el) return;
+    var title = document.getElementById('win-title');
+    var tEl = document.getElementById('win-time');
+    var dEl = document.getElementById('win-dmg');
+    var hEl = document.getElementById('win-hp');
+    var nextBtn = document.getElementById('win-next');
+
+    if (title) title.textContent = gameMode === 'solo' ? '通关成功' : (p.name + ' 获胜！');
+    var secs = Math.max(0.1, (Date.now() - roundStartAt) / 1000);
+    if (tEl) tEl.textContent = secs.toFixed(1) + 's';
+    if (dEl) dEl.textContent = String(hurtCount);
+    if (hEl) hEl.textContent = String(Math.round(players[0].hp));
+
+    var isOfficial = mapMode === 'official';
+    var total = isOfficial ? officialList(COLS).length : 0;
+    var hasNext = isOfficial && currentOfficial + 1 < total;
+    if (nextBtn) {
+      nextBtn.style.display = hasNext ? '' : 'none';
+      nextBtn.textContent = hasNext ? ('下一关 ▶') : '已通关';
+    }
+    el.hidden = false;
+  }
+
+  /* 把当前关卡复制进自己的编辑器（传播闭环） */
+  function copyCurrentToEditor() {
+    hideWinCard();
+    var wasOfficial = mapMode === 'official';
+    mapMode = 'blank';
+    currentTemplate = -1;
+    editorMode = true;
+    winner = null;
+    comboQueue.length = 0;
+    undoStack.length = 0; redoStack.length = 0;
+    if (cardTicks) { cardTicks.start = !!startCell; cardTicks.goal = !!goalCell; }
+    resetPlayersForEditor();
+    syncSegButtons();
+    updateHud();
+    flash(wasOfficial ? '已把这张关卡复制进你的编辑器，改完记得自己通关一次' : '已进入编辑器');
   }
 
   /* ---------- 渲染 ---------- */
@@ -5797,12 +5996,6 @@
   function drawPlatforms() {
     for (var i = 0; i < platforms.length; i++) {
       var p = platforms[i];
-
-      var halo = ctx.createRadialGradient(p.x + p.w / 2, p.y + p.h + 6, 2, p.x + p.w / 2, p.y + p.h + 6, p.w * 0.7);
-      halo.addColorStop(0, 'rgba(90,210,255,.35)');
-      halo.addColorStop(1, 'rgba(90,210,255,0)');
-      ctx.fillStyle = halo;
-      ctx.fillRect(p.x - 10, p.y + p.h - 2, p.w + 20, 18);
 
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,.55)';
@@ -6115,27 +6308,9 @@
 
   function drawWinner() {
     if (!winner) return;
-    var solo = gameMode === 'solo';
-    var title = solo ? '通关成功' : (winner.name + ' 获胜');
-
     ctx.save();
-    ctx.fillStyle = 'rgba(6,10,16,.62)';
+    ctx.fillStyle = 'rgba(6,10,16,.55)';
     ctx.fillRect(0, 0, MAP, MAP);
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = solo ? '#9fe8c4' : winner.color.tag;
-    ctx.font = '700 40px system-ui,sans-serif';
-    ctx.fillText(title, MAP / 2, MAP / 2 - 26);
-
-    ctx.fillStyle = 'rgba(220,235,255,.9)';
-    ctx.font = '600 15px system-ui,sans-serif';
-    ctx.fillText('按 R 重开一局', MAP / 2, MAP / 2 + 26);
-    if (!isEditLocked()) {                       // 官图锁定：不显示编辑入口
-      ctx.font = '400 12px system-ui,sans-serif';
-      ctx.fillStyle = 'rgba(170,200,235,.75)';
-      ctx.fillText('按 E 继续改地图', MAP / 2, MAP / 2 + 52);
-    }
     ctx.restore();
   }
 
