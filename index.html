@@ -442,6 +442,8 @@
   }
   .ls-card b{ font-size:18px; }
   .ls-card span{ font-size:14px; font-weight:700; }
+  .ls-card .ls-rec{ display:block; margin-top:6px; font-size:10.5px; font-style:normal; text-decoration:none; color:#7d90a6; letter-spacing:.02em; }
+  .ls-card .ls-rec.ok{ color:#57d38c; }
   .ls-card em{ font-style:normal; font-size:11px; color:#93a9c0; }
   .ls-card:hover{ background:rgba(76,141,255,.16); transform:translateY(-1px); }
   .ls-card.ls-easy{ border-color:rgba(87,211,140,.85); box-shadow:0 0 0 1px rgba(87,211,140,.25), 0 8px 22px -14px rgba(87,211,140,.8); }
@@ -1279,7 +1281,8 @@
 <div class="modal-mask" id="share-result" hidden>
   <div class="modal">
     <p class="modal-title">分享链接已生成</p>
-    <p class="modal-text">复制下面的链接发给朋友（6×6 尺寸才可在手机打开）</p>
+    <p class="modal-text">复制下面的链接发给朋友，点开就能玩</p>
+    <p class="modal-text" id="share-count-line" style="color:#8fd3b6;">—</p>
     <input id="share-url" class="share-input" readonly />
     <div class="seg">
       <button type="button" id="share-copy">复制链接</button>
@@ -1864,6 +1867,8 @@
   var comboQueue = [];              // 连坐队列
   var winner = null;                // 先到终点的人
   var roundStartAt = 0;             // 本局开始时间
+  var shakeT = 0, shakeMag = 0;     // 震屏
+  var SHAKE_TIME = 0.2;
   var hurtCount = 0;                // 本局受伤次数
   var showBoxes = false;
 
@@ -2362,6 +2367,25 @@
     m.hidden = false;
   }
 
+  /* ---- 关卡记录：本地保存最佳用时 ---- */
+  function levelRecordKey(i) {
+    var list = officialList(COLS);
+    var def = OFFICIAL[list[i]];
+    return 'weida_lvl_' + COLS + '_' + (def ? def.name : i);
+  }
+  function readLevelRecord(i) {
+    try { return JSON.parse(localStorage.getItem(levelRecordKey(i)) || 'null'); } catch (e) { return null; }
+  }
+  function saveLevelRecord(i, secs) {
+    var rec = readLevelRecord(i) || { cleared: false, best: 0, times: 0 };
+    rec.cleared = true;
+    rec.times = (rec.times || 0) + 1;
+    var isNew = !rec.best || secs < rec.best;
+    if (isNew) rec.best = secs;
+    try { localStorage.setItem(levelRecordKey(i), JSON.stringify(rec)); } catch (e) {}
+    return { isNew: isNew, rec: rec };
+  }
+
   var LS_DIFF = ['easy', 'easy', 'mid', 'hard', 'hard'];
   var LS_DIFF_LABEL = { easy: '简单', mid: '中等', hard: '困难' };
 
@@ -2378,7 +2402,11 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'ls-card ls-' + diff;
-        b.innerHTML = '<b>' + (i + 1) + '</b><span>' + def.name + '</span><em>' + (LS_DIFF_LABEL[diff] || '') + '</em>';
+        var rec = readLevelRecord(i);
+        var recHtml = rec && rec.cleared
+          ? '<u class="ls-rec ok">✓ 已通关 · 最佳 ' + (rec.best ? rec.best.toFixed(1) : '--') + 's</u>'
+          : '<u class="ls-rec">未通关</u>';
+        b.innerHTML = '<b>' + (i + 1) + '</b><span>' + def.name + '</span><em>' + (LS_DIFF_LABEL[diff] || '') + '</em>' + recHtml;
         (function (idx) {
           b.addEventListener('click', function () { chooseLevel(idx); });
         })(i);
@@ -2715,11 +2743,35 @@
     };
   }
 
+  function mapFingerprint(payload) {
+    var str = JSON.stringify([payload.size, payload.rows, payload.start, payload.goal, payload.blocks, payload.traps]);
+    var h = 5381;
+    for (var i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  function bumpCounter(kind, key) {
+    var k = 'weida_' + kind + '_' + key;
+    var n = 0;
+    try { n = parseInt(localStorage.getItem(k) || '0', 10) || 0; } catch (e) {}
+    n++;
+    try { localStorage.setItem(k, String(n)); } catch (e) {}
+    return n;
+  }
+  function readCounter(kind, key) {
+    try { return parseInt(localStorage.getItem('weida_' + kind + '_' + key) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+
   function buildShareUrl() {
     var p = buildSharePayload();
     var base = location.href.split('#')[0];
+    var fp = mapFingerprint(p);
+    var sent = bumpCounter('sent', fp);            // 这张图在本机被发出的次数
+    __lastShareFp = fp; __lastShareSent = sent;
     return base + '#/play/' + p.size + 'x' + p.size + '?map=' + b64enc(JSON.stringify(p));
   }
+
+  var __lastShareFp = '', __lastShareSent = 0;
 
   function parseShareHash() {
     var h = location.hash || '';
@@ -2757,8 +2809,10 @@
     if (elShareInfo) {
       var cleared = !!(data.meta && data.meta.clearedByAuthor);
       var when = data.meta && data.meta.clearedAt ? new Date(data.meta.clearedAt) : null;
+      var opened = bumpCounter('open', mapFingerprint(data));
       elShareInfo.textContent = (size === 6 ? '6×6' : '10×10') + ' · ' +
-        (cleared ? ('作者已实测通关' + (when ? '（' + when.toLocaleDateString() + '）' : '')) : '待验证地图');
+        (cleared ? ('作者已实测通关' + (when ? '（' + when.toLocaleDateString() + '）' : '')) : '待验证地图') +
+        (opened > 1 ? ' · 你第 ' + opened + ' 次打开' : '');
     }
     updateHud();
   }
@@ -4146,6 +4200,12 @@
     if (send) send.hidden = true;
     var url = buildShareUrl();
     if (elShareUrl) elShareUrl.value = url;
+    var line = document.getElementById('share-count-line');
+    if (line) {
+      line.textContent = __lastShareSent > 1
+        ? '这张图你一共发出去了 ' + __lastShareSent + ' 次'
+        : '这是你第一次发送这张图';
+    }
     if (elShareResult) elShareResult.hidden = false;
   });
   if (elModalTest && typeof elModalTest.addEventListener === 'function') {
@@ -5317,7 +5377,12 @@
 
   function damagePlayer(pl, amount, force) {
     if (!force && pl.invincible > 0) return false;
-    if (amount > 0) { pushDamageFloat(pl, amount); flashHpBar(); }
+    if (amount > 0) {
+      pushDamageFloat(pl, amount);
+      flashHpBar();
+      pl.hitFlash = 0.18;
+      shakeT = SHAKE_TIME; shakeMag = Math.min(4, 2 + amount);
+    }
     if (amount > 0) hurtCount++;
     pl.hp -= amount;
     pl.invincible = INVINCIBLE_TIME;
@@ -5397,6 +5462,7 @@
       if (traps[i].cool > 0) traps[i].cool = Math.max(0, traps[i].cool - dt);
     }
     if (tutorialActive()) tutorialPulse += dt;
+    if (shakeT > 0) shakeT = Math.max(0, shakeT - dt);
     for (var fi = 0; fi < hpFloats.length; fi++) {
       if (hpFloats[fi].t > 0) hpFloats[fi].t = Math.max(0, hpFloats[fi].t - dt * 0.9);
     }
@@ -5460,6 +5526,7 @@
     var inp = frameInput[p.id] || frameInput[0];
 
     if (p.invincible > 0) p.invincible = Math.max(0, p.invincible - dt);
+    if (p.hitFlash > 0) p.hitFlash = Math.max(0, p.hitFlash - dt);
     if (p.stun > 0) p.stun = Math.max(0, p.stun - dt);
     if (p.stompCool > 0) p.stompCool = Math.max(0, p.stompCool - dt);
     if (p.stepVisual > 0) p.stepVisual = Math.max(0, p.stepVisual - STEP_SMOOTH * dt);
@@ -5692,8 +5759,11 @@
         }
         winner = p;
         p.wins++;
+        var _secs = Math.max(0.1, (Date.now() - roundStartAt) / 1000);
+        var _saved = null;
+        if (mapMode === 'official') _saved = saveLevelRecord(currentOfficial, _secs);
         flash(gameMode === 'solo' ? '通关成功！' : (p.name + ' 获胜！'));
-        showWinCard(p);
+        showWinCard(p, _saved);
         updateHud();
         return;
       }
@@ -5706,7 +5776,7 @@
     if (el) el.hidden = true;
   }
 
-  function showWinCard(p) {
+  function showWinCard(p, saved) {
     var el = document.getElementById('win-card');
     if (!el) return;
     var title = document.getElementById('win-title');
@@ -5718,6 +5788,7 @@
     if (title) title.textContent = gameMode === 'solo' ? '通关成功' : (p.name + ' 获胜！');
     var secs = Math.max(0.1, (Date.now() - roundStartAt) / 1000);
     if (tEl) tEl.textContent = secs.toFixed(1) + 's';
+    if (title && saved && saved.isNew) title.textContent += ' · 新纪录';
     if (dEl) dEl.textContent = String(hurtCount);
     if (hEl) hEl.textContent = String(Math.round(players[0].hp));
 
@@ -6265,6 +6336,16 @@
 
     ctx.restore();
     ctx.restore();
+
+    /* 受击闪白 */
+    if (p.hitFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.7, p.hitFlash / 0.18 * 0.7);
+      ctx.fillStyle = '#ffffff';
+      roundRect(cx - 11, feet - 44, 22, 40, 9);
+      ctx.fill();
+      ctx.restore();
+    }
 
     ctx.fillStyle = isP1 ? 'rgba(140,190,255,.95)' : 'rgba(255,190,140,.95)';
     ctx.font = '700 10px ui-monospace,Consolas,monospace';
@@ -6816,6 +6897,14 @@
   }
 
   function render() {
+    var sx = 0, sy = 0;
+    if (shakeT > 0) {
+      var k = shakeT / SHAKE_TIME;
+      sx = (Math.random() - 0.5) * 2 * shakeMag * k;
+      sy = (Math.random() - 0.5) * 2 * shakeMag * k;
+    }
+    ctx.save();
+    if (sx || sy) ctx.translate(sx, sy);
     drawGrid();
     drawTiles();
     drawBlocks();
@@ -6847,6 +6936,7 @@
       drawEditor();
       drawEditorOverlay();
     }
+    ctx.restore();
   }
 
   /* 机关即时提示：飘在机关上方，2 秒淡出，不压住机关本体 */
