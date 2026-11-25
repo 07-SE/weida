@@ -397,6 +397,9 @@
     display:flex; align-items:center; justify-content:center;
     background:radial-gradient(900px 600px at 50% 30%, #16273a 0%, #0b0f15 62%, #06090d 100%);
   }
+  .key-chips{ display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-low); }
+  .key-chips kbd{ font-size:10px; padding:1px 4px; }
+
   .level-hud{
     display:flex; flex-direction:column; gap:4px;
     padding:12px 14px; border-radius:12px;
@@ -829,8 +832,8 @@
 
     <div class="divider"></div>
 
-    <p class="seg-hint" id="edit-keys" hidden>模板 T · 1 2 3 4</p>
-    <p class="seg-hint" id="level-keys" hidden>关卡切换：1 2 3 4 5</p>
+    <p class="seg-hint key-chips" id="edit-keys" hidden><kbd>T</kbd> 切换模板</p>
+    <p class="seg-hint key-chips" id="level-keys" hidden><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd> 切换关卡</p>
 
     <div class="legend" id="hud-legend">
       <div class="row"><span>P1 移动</span><b><kbd>A</kbd><kbd>D</kbd></b></div>
@@ -848,8 +851,7 @@
         <button type="button" class="next-level" id="next-level">下一关 ▶</button>
       </div>
     </div>
-
-    <p class="note" id="hud-note">P1 A/D/W · P2 ←/→/↑ · 踩头借力 · 弹簧撞击 · 连坐 50%</p>
+    <p class="note" id="hud-note">碰刺 −1 · 连坐 −0.5 · 4 滴血空即失败</p>
     <p class="flash" id="hud-flash">已复位双方</p>
   </aside>
 
@@ -1620,7 +1622,7 @@
   var held = new Set();             // 当前按住的原始按键
   var comboQueue = [];              // 连坐队列
   var winner = null;                // 先到终点的人
-  var showBoxes = true;
+  var showBoxes = false;
 
   var gameMode = 'duo';             // 'solo' | 'duo'（PC 默认双人）
   var mapMode = 'semi';             // 地图模式：'blank' 空白 / 'semi' 半官图 / 'official' 官图
@@ -5718,38 +5720,90 @@
     }
   }
 
+
   function drawPlayer(p) {
     var x = Math.round(p.x);
     var y = Math.round(p.y + p.stepVisual);
-
     if (p.invincible > 0 && Math.floor(p.invincible * 24) % 2 === 0) return;
 
-    ctx.fillStyle = p.id === 0 ? 'rgba(76,141,255,.16)' : 'rgba(240,138,60,.16)';
+    var cx = x + BODY_W / 2;
+    var feet = y + BODY_H;
+    var isP1 = p.id === 0;
+    var main = isP1 ? '#4f7dff' : '#f0902f';
+    var dark = isP1 ? '#2b4eb8' : '#b4611a';
+    var light = isP1 ? '#a8c4ff' : '#ffcf8a';
+    var cloth = isP1 ? '#8fb3ff' : '#ffd9a8';
+
+    ctx.fillStyle = 'rgba(0,0,0,.4)';
     ctx.beginPath();
-    ctx.ellipse(x + BODY_W / 2, y + BODY_H - 2, BODY_W * 0.62, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, feet + 1, 13 - Math.min(4, Math.abs(p.vy) * 0.004), 4.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    var g = ctx.createLinearGradient(0, y, 0, y + BODY_H);
-    g.addColorStop(0, p.color.body[0]);
-    g.addColorStop(1, p.color.body[1]);
-    ctx.fillStyle = g;
-    roundRect(x, y, BODY_W, BODY_H, 6);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,.22)';
-    roundRect(x + 4, y + 4, BODY_W - 8, 8, 4);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,.6)';
-    ctx.fillRect(p.facing >= 0 ? x + BODY_W - 8 : x + 3, y + BODY_H - 26, 5, 10);
-
-    if (p.stun > 0) {
-      ctx.fillStyle = 'rgba(255,220,120,.9)';
-      ctx.font = '600 9px ui-monospace,Consolas,monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('晕', x + BODY_W / 2, y - 6);
+    var sq = 1, st = 1;
+    if (!p.onGround) {
+      var t = Math.max(-1, Math.min(1, p.vy / 700));
+      sq = 1 - t * 0.12;
+      st = 1 + t * 0.12;
     }
+    var walk = (p.onGround && Math.abs(p.moveDir) > 0) ? Math.sin(frameCount * 0.45) : 0;
+    var bob = p.onGround ? Math.sin(frameCount * 0.12) * 1.2 : 0;
+
+    ctx.save();
+    ctx.translate(cx, feet + bob);
+    ctx.scale(p.facing >= 0 ? st : -st, sq);
+
+    ctx.fillStyle = dark;
+    roundRect(-9, -13 + walk * 2, 7, 13, 3); ctx.fill();
+    roundRect(2, -13 - walk * 2, 7, 13, 3); ctx.fill();
+    ctx.fillStyle = isP1 ? '#1d3f9c' : '#8f4a10';
+    roundRect(-10, -4 + walk * 2, 9, 5, 2.5); ctx.fill();
+    roundRect(1, -4 - walk * 2, 9, 5, 2.5); ctx.fill();
+
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.moveTo(-4, -27);
+    ctx.lineTo(-13 - Math.min(6, Math.abs(p.vx) * 0.02), -22 + Math.sin(frameCount * 0.2) * 2);
+    ctx.lineTo(-4, -21);
+    ctx.closePath();
+    ctx.fill();
+
+    var bodyG = ctx.createLinearGradient(0, -30, 0, -12);
+    bodyG.addColorStop(0, main);
+    bodyG.addColorStop(1, dark);
+    ctx.fillStyle = bodyG;
+    roundRect(-11, -29, 22, 18, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    roundRect(-6, -26, 12, 4, 2); ctx.fill();
+
+    var headG = ctx.createLinearGradient(0, -46, 0, -30);
+    headG.addColorStop(0, cloth);
+    headG.addColorStop(1, main);
+    ctx.fillStyle = headG;
+    ctx.beginPath();
+    ctx.arc(0, -37, 11.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(12,20,34,.92)';
+    roundRect(-8.5, -41, 17, 9, 4.5); ctx.fill();
+    ctx.fillStyle = isP1 ? '#8fe0ff' : '#ffd166';
+    ctx.beginPath(); ctx.arc(-3.2, -36.6, 2.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.2, -36.6, 2.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.beginPath(); ctx.arc(-2.5, -37.4, .8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(3.9, -37.4, .8, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(0, -37, 9.6, Math.PI * 1.15, Math.PI * 1.75);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.fillStyle = isP1 ? 'rgba(140,190,255,.95)' : 'rgba(255,190,140,.95)';
+    ctx.font = '700 10px ui-monospace,Consolas,monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, cx, y - 8);
 
     if (showBoxes) {
       ctx.lineWidth = 1;
@@ -5758,15 +5812,8 @@
       ctx.strokeStyle = 'rgba(255,107,107,.95)';
       ctx.strokeRect(x + 2 + 0.5, y + 4 + 0.5, HURT_W - 1, HURT_H - 1);
     }
-
-    ctx.fillStyle = 'rgba(6,12,22,.62)';
-    ctx.font = '600 10px ui-monospace,Consolas,monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(p.name, x + BODY_W / 2, y + BODY_H - 12);
   }
 
-  /* 连坐预警：目标脚下红圈 */
   function drawComboWarnings() {
     for (var i = 0; i < comboQueue.length; i++) {
       var c = comboQueue[i];
