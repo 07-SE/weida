@@ -581,6 +581,123 @@
     }
   
 
+
+  /* ================= 右栏 v2（有厚度、有交互） ================= */
+  .hud{
+    background:
+      linear-gradient(180deg, rgba(30,48,70,.92) 0%, rgba(15,28,45,.94) 46%, rgba(11,21,34,.96) 100%);
+    border-radius:16px;
+    padding:16px 15px 14px;
+    gap:13px;
+    box-shadow:
+      inset 0 1px 0 rgba(185,220,255,.16),
+      inset 0 0 0 1px rgba(140,180,225,.14),
+      0 1px 2px rgba(0,0,0,.5),
+      0 26px 60px -34px rgba(0,0,0,.95);
+  }
+  .brand h1{ text-shadow:0 1px 0 rgba(0,0,0,.6); }
+
+  .seg{ gap:6px; }
+  .seg button{
+    position:relative;
+    border:1px solid rgba(140,180,225,.20);
+    border-radius:10px;
+    background:linear-gradient(180deg, rgba(64,92,126,.55) 0%, rgba(28,45,66,.85) 52%, rgba(18,30,46,.92) 100%);
+    color:var(--text-mid);
+    font-size:12px; font-weight:600; padding:8px 8px;
+    box-shadow:
+      inset 0 1px 0 rgba(205,232,255,.18),
+      inset 0 -1px 0 rgba(0,0,0,.45),
+      0 2px 5px -2px rgba(0,0,0,.75);
+    transition:transform .12s cubic-bezier(.2,.8,.2,1), filter .16s ease, box-shadow .18s ease, border-color .18s ease, color .16s ease;
+  }
+  .seg button:hover{
+    filter:brightness(1.16);
+    transform:translateY(-1px);
+    color:var(--text-hi);
+    border-color:rgba(150,200,255,.42);
+    box-shadow:
+      inset 0 1px 0 rgba(220,240,255,.3),
+      inset 0 -1px 0 rgba(0,0,0,.4),
+      0 8px 16px -10px rgba(0,0,0,.95),
+      0 0 0 1px rgba(120,170,255,.18);
+  }
+  .seg button:active{
+    transform:translateY(0) scale(.978);
+    filter:brightness(.94);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.55), inset 0 0 0 1px rgba(120,160,220,.2);
+  }
+  .seg button.on{
+    border-color:rgba(150,175,255,.85);
+    background:linear-gradient(180deg, rgba(126,152,255,.5) 0%, rgba(84,104,232,.62) 55%, rgba(62,78,200,.72) 100%);
+    color:#fff;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.4),
+      inset 0 -1px 0 rgba(20,30,90,.5),
+      0 0 0 1px rgba(120,150,255,.45),
+      0 10px 22px -12px rgba(91,108,255,.95);
+    text-shadow:0 1px 2px rgba(20,30,90,.5);
+  }
+  .seg button.on:hover{ filter:brightness(1.08); }
+
+  kbd{
+    min-width:18px;
+    background:linear-gradient(180deg, rgba(86,120,160,.5) 0%, rgba(24,38,56,.95) 100%);
+    color:#e8f2ff;
+    border-radius:5px;
+    padding:1.5px 5px;
+    box-shadow:
+      inset 0 1px 0 rgba(215,240,255,.3),
+      0 1px 0 rgba(0,0,0,.65),
+      0 0 0 1px rgba(140,180,225,.2);
+    font-weight:600;
+  }
+
+  .level-hud{
+    background:
+      radial-gradient(120% 90% at 20% 0%, rgba(91,108,255,.26), transparent 60%),
+      linear-gradient(180deg, rgba(40,62,92,.9), rgba(17,31,48,.94));
+    box-shadow:
+      inset 0 1px 0 rgba(190,220,255,.2),
+      inset 0 0 0 1px rgba(140,180,225,.2),
+      0 10px 24px -18px rgba(0,0,0,.95);
+    border-radius:13px;
+    padding:12px 14px;
+  }
+  .lv-name{ text-shadow:0 1px 0 rgba(0,0,0,.5); }
+
+  .hp-bar .hp-p1, .hp-bar .hp-p2{
+    display:inline-block;
+    transition:transform .18s cubic-bezier(.2,.8,.2,1), filter .2s ease;
+  }
+  .hp-bar.changing .hp-p1, .hp-bar.changing .hp-p2{
+    animation:hpBump .42s cubic-bezier(.2,.9,.2,1);
+  }
+  @keyframes hpBump{
+    0%{ transform:scale(1); filter:none; }
+    35%{ transform:scale(1.14); filter:drop-shadow(0 0 10px rgba(255,120,120,.85)); }
+    100%{ transform:scale(1); filter:none; }
+  }
+  #hud-hp{ text-shadow:0 0 10px rgba(255,120,120,.25); }
+
+  .next-level{
+    border-radius:11px; height:38px; font-size:12.5px; font-weight:800; letter-spacing:.02em;
+    transition:transform .12s cubic-bezier(.2,.8,.2,1), filter .16s ease, box-shadow .18s ease;
+  }
+  .next-level.easy{ background:linear-gradient(180deg,#7ce8ab,#43b87a); color:#062012;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 10px 22px -12px rgba(87,211,140,.95); }
+  .next-level.mid{ background:linear-gradient(180deg,#ffe08a,#e0a832); color:#241706;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 10px 22px -12px rgba(255,209,102,.95); }
+  .next-level.hard{ background:linear-gradient(180deg,#ff9b9b,#d94141); color:#2a0b0b;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 10px 22px -12px rgba(255,107,107,.95); }
+  .next-level:hover{ filter:brightness(1.1); transform:translateY(-1px); }
+  .next-level:active{ transform:translateY(0) scale(.985); }
+  .next-level.last{ background:linear-gradient(180deg, rgba(60,80,105,.5), rgba(24,38,56,.85)); color:var(--text-low);
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.2); }
+
+  .row{ transition:color .16s ease; }
+  .row:hover{ color:var(--text-mid); }
+
   /* ================= WEIDA SKIN v1（统一取自 DESIGN.md 令牌） ================= */
   body{ background:var(--ink-900); }
   #stage{
@@ -2007,8 +2124,17 @@
     return out;
   }
 
+  var _lastHp = '';
   function syncHpBar() {
     if (!elHpBar || !elHpP1) return;
+    var nowHp = heartStr(players[0].hp) + '|' + heartStr(players[1].hp);
+    if (_lastHp && nowHp !== _lastHp) {
+      elHpBar.classList.remove('changing');
+      void elHpBar.offsetWidth;
+      elHpBar.classList.add('changing');
+      setTimeout(function () { elHpBar.classList.remove('changing'); }, 460);
+    }
+    _lastHp = nowHp;
     elHpP1.textContent = heartStr(players[0].hp);
     elHpP1.classList.toggle('dead', players[0].hp <= 0);
     if (elHpP2) {
@@ -5028,7 +5154,7 @@
 
     var mount = t.mount || 'top';
     if (mount === 'left' || mount === 'right') {
-      var pad = Math.max(0, 22 - t.w);
+      var pad = Math.max(0, 18 - t.w);
       var bx = t.x, bw = t.w;
       if (mount === 'left') { bx -= pad; bw += pad; }
       else { bw += pad; }
