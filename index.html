@@ -397,6 +397,10 @@
     display:flex; align-items:center; justify-content:center;
     background:radial-gradient(900px 600px at 50% 30%, #16273a 0%, #0b0f15 62%, #06090d 100%);
   }
+  #edit-tools .seg button{ font-size:11.5px; padding:7px 4px; letter-spacing:0; }
+  #edit-tools .seg{ gap:5px; }
+  .hud .seg.gap-tight button{ padding:6px 4px; }
+
   .ls-box{
     width:min(560px, 92vw); padding:26px 24px 20px; border-radius:16px;
     background:rgba(17,24,34,.92);
@@ -542,6 +546,123 @@
       padding:8px; gap:8px; height:auto; min-height:100dvh;
     }
   
+
+  /* ================= WEIDA SKIN v1（统一取自 DESIGN.md 令牌） ================= */
+  body{ background:var(--ink-900); }
+  #stage{
+    background:var(--ink-900); border-radius:14px;
+    box-shadow:0 0 0 1px rgba(140,180,225,.16), 0 30px 70px -32px #000;
+  }
+  #badge{
+    background:rgba(13,26,43,.92); color:var(--text-mid);
+    border-radius:999px; font-size:11px; letter-spacing:.02em;
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.18);
+  }
+  .hp-bar{ gap:16px; height:24px; font-size:15px; letter-spacing:2px; }
+  .hp-bar .hp-p1{ color:#7db3ff; text-shadow:0 0 12px rgba(125,179,255,.45); }
+  .hp-bar .hp-p2{ color:#ffb176; text-shadow:0 0 12px rgba(255,177,118,.45); }
+
+  .hud{
+    background:var(--ink-800); border-radius:14px; padding:16px; gap:12px;
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.14);
+  }
+  .brand h1{ font-size:11px; letter-spacing:.16em; color:var(--text-low); font-weight:600; }
+  .brand .dot{ background:var(--easy); box-shadow:0 0 10px rgba(87,211,140,.55); }
+  .hud .sub{ font-size:11px; color:var(--text-low); }
+  .seg-title{ font-size:11px; letter-spacing:.08em; color:var(--text-low); font-weight:600; }
+  .seg button{
+    border-radius:9px; border:1px solid rgba(140,180,225,.18);
+    background:rgba(255,255,255,.03); color:var(--text-mid);
+    font-size:12px; padding:7px 8px;
+    transition:border-color .15s ease, background .15s ease, color .15s ease;
+  }
+  .seg button:hover{ border-color:rgba(140,180,225,.42); color:var(--text-hi); }
+  .seg button.on{ background:rgba(91,108,255,.24); border-color:rgba(91,108,255,.8); color:#fff; }
+  .seg-hint{ font-size:11.5px; line-height:1.55; color:var(--text-low); }
+  .row{ font-size:12px; color:var(--text-low); }
+  .row b{ font-size:12px; color:var(--text-hi); }
+  kbd{
+    background:rgba(255,255,255,.06); color:var(--text-mid);
+    border-radius:5px; font-size:10.5px; padding:1px 5px;
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.2);
+  }
+  .note{ font-size:11.5px; color:var(--text-low); line-height:1.6; }
+  .flash{ font-size:11.5px; color:var(--easy); }
+  .divider{ background:rgba(140,180,225,.14); }
+  .legend{ font-size:11.5px; color:var(--text-low); gap:6px; }
+  .reach-note{ border-radius:10px; background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px rgba(140,180,225,.14); font-size:11.5px; color:var(--text-mid); }
+  .step-strip{ font-size:11px; color:var(--text-low); }
+  .step-strip .dot{ background:rgba(255,255,255,.05); color:var(--text-low); box-shadow:inset 0 0 0 1px rgba(140,180,225,.2); }
+  .step-strip .dot.done{ background:rgba(87,211,140,.16); color:var(--easy); box-shadow:inset 0 0 0 1px rgba(87,211,140,.45); }
+
+  .start-card{ gap:8px; }
+  .start-card .seg-title{ font-size:14px; letter-spacing:0; color:var(--text-hi); font-weight:700; }
+  .steps{ gap:10px; }
+  .steps li{ font-size:13.5px; color:var(--text-mid); }
+  .steps li i{ font-size:14px; color:var(--text-low); }
+  .steps li em{ font-size:11.5px; color:var(--text-low); padding-left:20px; }
+  .steps li.done{ color:var(--easy); }
+  .steps .hl{ color:var(--text-hi); font-weight:700; }
+  .steps-done{ font-size:11.5px; color:var(--easy); }
+  #start-card-ok{
+    border-radius:10px; padding:9px 12px; font-size:12.5px;
+    background:rgba(255,255,255,.05); color:var(--text-low);
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.16);
+  }
+  #start-card-ok.ready{ background:var(--mid); color:#221704; cursor:pointer; box-shadow:0 10px 26px -14px rgba(255,209,102,.9); }
+  .ghost-btn{ border-radius:10px; color:var(--text-low); box-shadow:inset 0 0 0 1px rgba(140,180,225,.16); }
+
+  .modal-mask{ background:rgba(4,8,16,.76); }
+  .modal{
+    background:var(--ink-800); border-radius:16px; padding:20px; gap:12px;
+    box-shadow:0 0 0 1px rgba(140,180,225,.2), 0 30px 80px -34px #000;
+  }
+  .modal-title{ font-size:15px; font-weight:700; color:var(--text-hi); }
+  .modal-text{ font-size:12.5px; line-height:1.7; color:var(--text-mid); }
+  .modal-close{
+    width:26px; height:26px; border-radius:999px;
+    background:rgba(255,255,255,.05); color:var(--text-low);
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.2);
+  }
+  .modal-close:hover{ background:rgba(255,107,107,.16); color:#ffd7d7; }
+  .guide-grid{ gap:14px; }
+  .guide-col{ border-radius:12px; background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px rgba(140,180,225,.16); }
+  .guide-key{ font-size:16px; color:var(--text-hi); }
+  .guide-desc{ font-size:11.5px; color:var(--text-low); }
+  .rules-text{ font-size:12.5px; line-height:1.75; color:var(--text-mid); }
+  .rules-text b{ color:#8fa0ff; }
+  .share-input{ border-radius:10px; background:var(--ink-700); color:var(--text-mid); font-size:11.5px; box-shadow:inset 0 0 0 1px rgba(140,180,225,.22); }
+  .confirm{ border-radius:10px; background:rgba(255,209,102,.09); box-shadow:inset 0 0 0 1px rgba(255,209,102,.28); }
+  .confirm p{ font-size:11.5px; color:#ffe1b0; }
+
+  .back-btn{ width:30px; height:30px; border-radius:999px; background:rgba(13,26,43,.9); color:var(--text-mid); font-size:15px; box-shadow:inset 0 0 0 1px rgba(140,180,225,.22); }
+  .tut-btn{ height:28px; padding:0 13px; border-radius:999px; background:rgba(13,26,43,.9); color:var(--text-mid); font-size:12px; box-shadow:inset 0 0 0 1px rgba(140,180,225,.22); }
+  .back-btn:hover, .tut-btn:hover{ color:var(--text-hi); background:rgba(19,38,60,.96); }
+  .rules-btn{ width:26px; height:26px; border-radius:999px; background:rgba(13,26,43,.9); color:var(--text-mid); box-shadow:inset 0 0 0 1px rgba(140,180,225,.22); }
+  .key-hint{ background:var(--mid); color:#241706; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; box-shadow:0 10px 26px -16px rgba(255,209,102,.9); }
+  .tut-hint{ background:var(--mid); color:#241706; border-radius:999px; font-size:12px; }
+  .toast{ background:rgba(13,26,43,.96); color:var(--text-hi); font-size:12.5px; border-radius:12px; box-shadow:inset 0 0 0 1px rgba(140,180,225,.24); }
+  .reach-warn{ background:rgba(52,12,12,.94); color:#ffc9c9; font-size:12px; border-radius:10px; box-shadow:inset 0 0 0 1px rgba(255,107,107,.55); }
+
+  .ls-box{
+    background:var(--ink-800); border-radius:18px;
+    box-shadow:0 0 0 1px rgba(140,180,225,.2), 0 40px 90px -40px #000;
+    gap:14px; padding:28px 26px 22px;
+  }
+  .ls-title{ font-size:22px; letter-spacing:-.01em; color:var(--text-hi); }
+  .ls-sub{ font-size:12px; color:var(--text-low); }
+  .ls-legend{ font-size:11.5px; color:var(--text-low); }
+  .ls-card{ border-radius:14px; background:rgba(255,255,255,.03); padding:16px; }
+  .ls-card b{ font-size:13px; font-weight:600; color:var(--text-low); }
+  .ls-card span{ font-size:16px; font-weight:700; color:var(--text-hi); }
+  .ls-card em{ font-size:11.5px; color:var(--text-low); }
+  .ls-card:hover{ background:rgba(91,108,255,.12); }
+  .next-level{ border-radius:999px; height:36px; font-size:12.5px; font-weight:700; }
+
+  .starter{ border-radius:12px; background:rgba(255,255,255,.03); box-shadow:inset 0 0 0 1px rgba(140,180,225,.18); font-size:13px; }
+  .starter:hover{ background:rgba(91,108,255,.16); box-shadow:inset 0 0 0 1px rgba(91,108,255,.6); }
+  .starter em{ font-size:11px; color:var(--text-low); }
+
 </style>
 </head>
 <body>
@@ -618,7 +739,7 @@
       <div class="seg">
         <button type="button" id="btn-undo">撤回</button>
         <button type="button" id="btn-redo">恢复</button>
-        <button type="button" id="btn-clear">清空画布</button>
+        <button type="button" id="btn-clear">清空</button>
       </div>
       <p class="seg-hint">Ctrl+Z 撤回 · Ctrl+Y 恢复 · <a href="#" id="start-card-open">开工三步</a></p>
       <p class="step-strip" id="step-strip">
@@ -5220,7 +5341,7 @@
   }
 
   function drawGrid() {
-    ctx.fillStyle = '#0d1218';
+    ctx.fillStyle = '#0a1220';
     ctx.fillRect(0, 0, MAP, MAP);
 
     ctx.lineWidth = 1;
@@ -5243,14 +5364,14 @@
         var x = c * CELL;
         var y = r * CELL;
 
-        ctx.fillStyle = '#1a2534';
+        ctx.fillStyle = '#111f31';
         ctx.fillRect(x, y, CELL, CELL);
 
         ctx.fillStyle = 'rgba(255,255,255,.028)';
         ctx.fillRect(x + 4, y + 4, CELL - 8, CELL - 8);
 
         if (!solidAt(c, r - 1)) {
-          ctx.fillStyle = '#3f6392';
+          ctx.fillStyle = '#2b5480';
           ctx.fillRect(x, y, CELL, 3);
           ctx.fillStyle = 'rgba(130,190,255,.16)';
           ctx.fillRect(x, y + 3, CELL, 5);
@@ -5271,13 +5392,13 @@
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       var r = blockRect(b);
-      ctx.fillStyle = '#2b4a42';
+      ctx.fillStyle = '#16283b';
       ctx.fillRect(r.x, r.y, r.w, r.h);
 
-      ctx.fillStyle = 'rgba(120,230,200,.22)';
+      ctx.fillStyle = 'rgba(120,200,255,.20)';
       ctx.fillRect(r.x + 2, r.y + 2, r.w - 4, 6);
 
-      ctx.strokeStyle = 'rgba(120,230,200,.55)';
+      ctx.strokeStyle = 'rgba(120,200,255,.5)';
       ctx.lineWidth = 1;
       ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
     }
@@ -5599,7 +5720,7 @@
     if (paletteCollapsed) {
       // 收起态：只留一个展开按钮，画布不再被遮挡
       var tr = palToggleRect();
-      ctx.fillStyle = 'rgba(9,14,21,.88)';
+      ctx.fillStyle = 'rgba(13,26,43,.94)';
       roundRect(tr.x, tr.y, tr.w, tr.h, 8);
       ctx.fill();
       ctx.strokeStyle = 'rgba(120,170,230,.5)';
@@ -5620,10 +5741,10 @@
     var bw = box.w;
     var bh = box.h;
 
-    ctx.fillStyle = 'rgba(9,14,21,.88)';
+    ctx.fillStyle = 'rgba(13,26,43,.94)';
     roundRect(bx, by, bw, bh, 10);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(120,170,230,.28)';
+    ctx.strokeStyle = 'rgba(140,180,225,.24)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
@@ -5655,10 +5776,10 @@
     for (var i = 0; i < TOOLS.length; i++) {
       var r = paletteRect(i);
       var active = i === activeTool;
-      ctx.fillStyle = active ? 'rgba(76,141,255,.30)' : 'rgba(255,255,255,.05)';
+      ctx.fillStyle = active ? 'rgba(91,108,255,.28)' : 'rgba(255,255,255,.035)';
       roundRect(r.x, r.y, r.w, r.h, 6);
       ctx.fill();
-      ctx.strokeStyle = active ? 'rgba(130,185,255,.95)' : 'rgba(140,170,210,.22)';
+      ctx.strokeStyle = active ? 'rgba(91,108,255,.85)' : 'rgba(140,180,225,.2)';
       ctx.stroke();
 
       drawToolIcon(TOOLS[i], r, active);
@@ -6310,6 +6431,7 @@
     if (elReach) {
       var note = reachNoteText();
       elReach.textContent = note;
+      elReach.style.display = (note === '—') ? 'none' : '';
       elReach.classList.toggle('ok', st === '可试玩');
       elReach.classList.toggle('warn', st === '不可试玩');
     }
