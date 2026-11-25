@@ -329,6 +329,7 @@
     box-shadow:inset 0 0 0 1px rgba(120,170,230,.35);
   }
   .key-hint{
+    transition:opacity .26s ease;
     position:absolute; left:10px; bottom:10px; z-index:6;
     padding:5px 9px; border-radius:8px;
     background:linear-gradient(180deg, rgba(255,199,92,.96), rgba(255,178,58,.96));
@@ -2478,14 +2479,21 @@
   }
 
   function goHome() {
+    if (shareMode) {
+      shareMode = false;
+      shareMeta = null;
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    }
     if (mapMode === 'blank' && !isEditLocked() && typeof saveDraft === 'function') {
       try { saveDraft(); } catch (e) {}
     }
     closeAllModals();
     editorMode = false;
     winner = null;
+    hideWinCard();
     if (elHome) elHome.hidden = false;
     if (elBackBtn) elBackBtn.hidden = true;
+    if (elKeyHint) elKeyHint.hidden = true;
     updateHud();
   }
 
@@ -2631,10 +2639,17 @@
       : 'A/D 移动 · W/空格 跳 · R 重开';
   }
 
+  var keyHintTimer = 0;
   function refreshKeyHint() {
     if (!elKeyHint) return;
     elKeyHint.textContent = keyHintFor();
     elKeyHint.hidden = false;
+    elKeyHint.style.opacity = '1';
+    if (keyHintTimer) clearTimeout(keyHintTimer);
+    keyHintTimer = setTimeout(function () {
+      elKeyHint.style.opacity = '0';
+      keyHintTimer = setTimeout(function () { elKeyHint.hidden = true; }, 260);
+    }, 2000);
   }
 
   function rulesSeenKey() {
@@ -2799,6 +2814,7 @@
       start: data.start || null,
       goal: data.goal || null
     });
+    if (elBackBtn) elBackBtn.hidden = false;
     refreshKeyHint();
     spawnTrapTips();
     if (!rulesSeen()) showShareRules();
