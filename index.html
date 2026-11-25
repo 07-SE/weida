@@ -397,6 +397,21 @@
     display:flex; align-items:center; justify-content:center;
     background:radial-gradient(900px 600px at 50% 30%, #16273a 0%, #0b0f15 62%, #06090d 100%);
   }
+  .level-hud{
+    display:flex; flex-direction:column; gap:4px;
+    padding:12px 14px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(91,108,255,.16), rgba(91,108,255,.04));
+    box-shadow:inset 0 0 0 1px rgba(140,180,225,.22);
+  }
+  .lv-top{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-low); }
+  .lv-dot{ width:8px; height:8px; border-radius:3px; background:var(--easy); }
+  .lv-dot.mid{ background:var(--mid); }
+  .lv-dot.hard{ background:var(--hard); }
+  .lv-diff{ font-weight:700; letter-spacing:.04em; }
+  .lv-idx{ margin-left:auto; font-variant-numeric:tabular-nums; }
+  .lv-name{ font-size:19px; font-weight:800; color:var(--text-hi); letter-spacing:-.01em; line-height:1.2; }
+  #hud-hp{ font-size:13.5px; letter-spacing:1.5px; }
+
   #edit-tools .seg button{ font-size:11.5px; padding:7px 4px; letter-spacing:0; }
   #edit-tools .seg{ gap:5px; }
   .hud .seg.gap-tight button{ padding:6px 4px; }
@@ -687,7 +702,16 @@
   <aside class="hud" id="hud" style="display: flex;">
     <button type="button" class="tut-btn" id="tut-btn" title="教程">教程</button>
     <div class="brand"><span class="dot"></span><h1>WEIDA DEMO</h1></div>
-    <p class="sub">Step 6 · 双人 / 踩头 / 连坐 / 结算 · 引导 v1</p>
+    <p class="sub">双人协作 · 踩头借力 · 连坐掉血</p>
+
+    <div class="level-hud" id="level-hud" hidden>
+      <div class="lv-top">
+        <span class="lv-dot" id="lv-dot"></span>
+        <span class="lv-diff" id="lv-diff">简单</span>
+        <span class="lv-idx" id="lv-idx">1 / 5</span>
+      </div>
+      <b class="lv-name" id="lv-name">热身</b>
+    </div>
 
     <div class="seg-block start-card" id="start-card" hidden>
       <span class="seg-title">开工三步（完成才能进入完整编辑）</span>
@@ -2130,6 +2154,26 @@
 
     var total = officialList(COLS).length;
     var isLast = currentOfficial + 1 >= total;
+
+    // 右栏顶部关卡信息
+    var lh = document.getElementById('level-hud');
+    if (lh) {
+      var lhShow = (mapMode === 'official') && !editorMode;
+      lh.hidden = !lhShow;
+      if (lhShow) {
+        var list = officialList(COLS);
+        var def = OFFICIAL[list[currentOfficial]];
+        var diff = LS_DIFF[currentOfficial] || 'easy';
+        var dn = document.getElementById('lv-name');
+        var dd = document.getElementById('lv-diff');
+        var di = document.getElementById('lv-idx');
+        var dc = document.getElementById('lv-dot');
+        if (dn) dn.textContent = def ? def.name : '';
+        if (dd) dd.textContent = LS_DIFF_LABEL[diff] || '';
+        if (di) di.textContent = (currentOfficial + 1) + ' / ' + total;
+        if (dc) { dc.className = 'lv-dot ' + diff; }
+      }
+    }
     btn.classList.remove('easy', 'mid', 'hard', 'last');
     if (isLast) {
       btn.textContent = '这是最后一关';
@@ -5340,78 +5384,126 @@
     ctx.closePath();
   }
 
+
   function drawGrid() {
-    ctx.fillStyle = '#0a1220';
+    var g = ctx.createLinearGradient(0, 0, 0, MAP);
+    g.addColorStop(0, '#0c1526');
+    g.addColorStop(0.55, '#0a1220');
+    g.addColorStop(1, '#080e19');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, MAP, MAP);
+
+    var glow = ctx.createRadialGradient(MAP * 0.5, -MAP * 0.15, 0, MAP * 0.5, -MAP * 0.15, MAP * 0.9);
+    glow.addColorStop(0, 'rgba(91,108,255,.16)');
+    glow.addColorStop(1, 'rgba(91,108,255,0)');
+    ctx.fillStyle = glow;
     ctx.fillRect(0, 0, MAP, MAP);
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(130,170,220,.10)';
+    ctx.strokeStyle = 'rgba(130,170,220,.075)';
     ctx.beginPath();
     for (var i = 0; i <= COLS; i++) {
       var p = i * CELL + 0.5;
-      ctx.moveTo(p, 0);
-      ctx.lineTo(p, MAP);
-      ctx.moveTo(0, p);
-      ctx.lineTo(MAP, p);
+      ctx.moveTo(p, 0); ctx.lineTo(p, MAP);
+      ctx.moveTo(0, p); ctx.lineTo(MAP, p);
     }
     ctx.stroke();
   }
+
 
   function drawTiles() {
     for (var r = 0; r < ROWS; r++) {
       for (var c = 0; c < COLS; c++) {
         if (!grid[r][c]) continue;
-        var x = c * CELL;
-        var y = r * CELL;
+        var x = c * CELL, y = r * CELL;
+        var openTop = !solidAt(c, r - 1);
+        var openBottom = !solidAt(c, r + 1);
 
-        ctx.fillStyle = '#111f31';
+        var body = ctx.createLinearGradient(x, y, x, y + CELL);
+        body.addColorStop(0, '#1b2c40');
+        body.addColorStop(1, '#111d2c');
+        ctx.fillStyle = body;
         ctx.fillRect(x, y, CELL, CELL);
 
-        ctx.fillStyle = 'rgba(255,255,255,.028)';
-        ctx.fillRect(x + 4, y + 4, CELL - 8, CELL - 8);
+        if (openTop) {
+          var top = ctx.createLinearGradient(x, y, x, y + 10);
+          top.addColorStop(0, 'rgba(120,200,255,.42)');
+          top.addColorStop(1, 'rgba(120,200,255,0)');
+          ctx.fillStyle = top;
+          ctx.fillRect(x, y, CELL, 10);
+          ctx.fillStyle = '#3a6188';
+          ctx.fillRect(x, y, CELL, 2);
+        }
 
-        if (!solidAt(c, r - 1)) {
-          ctx.fillStyle = '#2b5480';
-          ctx.fillRect(x, y, CELL, 3);
-          ctx.fillStyle = 'rgba(130,190,255,.16)';
-          ctx.fillRect(x, y + 3, CELL, 5);
+        if (openBottom) {
+          var bot = ctx.createLinearGradient(x, y + CELL - 8, x, y + CELL);
+          bot.addColorStop(0, 'rgba(0,0,0,0)');
+          bot.addColorStop(1, 'rgba(0,0,0,.55)');
+          ctx.fillStyle = bot;
+          ctx.fillRect(x, y + CELL - 8, CELL, 8);
         }
-        if (!solidAt(c, r + 1)) {
-          ctx.fillStyle = 'rgba(0,0,0,.35)';
-          ctx.fillRect(x, y + CELL - 3, CELL, 3);
-        }
+
+        ctx.fillStyle = 'rgba(0,0,0,.22)';
+        ctx.fillRect(x + CELL - 2, y, 2, CELL);
+        ctx.fillStyle = 'rgba(160,210,255,.06)';
+        ctx.fillRect(x, y, 1, CELL);
       }
     }
 
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(140,190,255,.30)';
+    ctx.strokeStyle = 'rgba(140,190,255,.22)';
     ctx.strokeRect(1, 1, MAP - 2, MAP - 2);
   }
+
 
   function drawBlocks() {
     for (var i = 0; i < blocks.length; i++) {
       var b = blocks[i];
       var r = blockRect(b);
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.55)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 5;
       ctx.fillStyle = '#16283b';
-      ctx.fillRect(r.x, r.y, r.w, r.h);
+      roundRect(r.x, r.y, r.w, r.h, 4);
+      ctx.fill();
+      ctx.restore();
 
-      ctx.fillStyle = 'rgba(120,200,255,.20)';
-      ctx.fillRect(r.x + 2, r.y + 2, r.w - 4, 6);
+      var g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+      g.addColorStop(0, '#22405a');
+      g.addColorStop(0.5, '#1a3247');
+      g.addColorStop(1, '#122334');
+      ctx.fillStyle = g;
+      roundRect(r.x, r.y, r.w, r.h, 4);
+      ctx.fill();
 
-      ctx.strokeStyle = 'rgba(120,200,255,.5)';
+      ctx.fillStyle = 'rgba(140,215,255,.35)';
+      ctx.fillRect(r.x + 3, r.y + 2, r.w - 6, 3);
+
+      ctx.fillStyle = 'rgba(160,220,255,.10)';
+      ctx.fillRect(r.x + 2, r.y + 5, 2, r.h - 9);
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillRect(r.x + r.w - 3, r.y + 5, 2, r.h - 9);
+
+      ctx.strokeStyle = 'rgba(120,200,255,.38)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+      roundRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1, 4);
+      ctx.stroke();
     }
   }
 
+
   function drawSpikeTrap(t) {
     var mount = t.mount || 'top';
-
     if (mount === 'left' || mount === 'right') {
-      var n = 4;
-      var step = t.h / n;
+      var n = 4, step = t.h / n;
       for (var i = 0; i < n; i++) {
         var y0 = t.y + i * step;
+        var mg = ctx.createLinearGradient(t.x, y0, t.x + t.w, y0 + step);
+        mg.addColorStop(0, '#eef4ff');
+        mg.addColorStop(1, '#8ea3bd');
+        ctx.fillStyle = mg;
         ctx.beginPath();
         if (mount === 'left') {
           ctx.moveTo(t.x + t.w, y0 + 1);
@@ -5423,45 +5515,52 @@
           ctx.lineTo(t.x, y0 + step - 1);
         }
         ctx.closePath();
-        ctx.fillStyle = '#c2d0e2';
         ctx.fill();
       }
       return;
     }
 
-    ctx.fillStyle = 'rgba(20,26,36,.9)';
-    ctx.fillRect(t.x, t.y + t.h - 5, t.w, 5);
+    ctx.fillStyle = 'rgba(12,20,30,.95)';
+    roundRect(t.x - 1, t.y + t.h - 6, t.w + 2, 6, 2);
+    ctx.fill();
 
     var w = t.w / 3;
     for (var k = 0; k < 3; k++) {
       var sx = t.x + k * w;
+      var g = ctx.createLinearGradient(sx, t.y, sx + w, t.y + t.h);
+      g.addColorStop(0, '#f2f7ff');
+      g.addColorStop(0.55, '#c3d3e6');
+      g.addColorStop(1, '#7e93ad');
+      ctx.fillStyle = g;
       ctx.beginPath();
       ctx.moveTo(sx + 1, t.y + t.h - 4);
       ctx.lineTo(sx + w / 2, t.y);
       ctx.lineTo(sx + w - 1, t.y + t.h - 4);
       ctx.closePath();
-      ctx.fillStyle = '#c2d0e2';
       ctx.fill();
 
+      ctx.fillStyle = 'rgba(20,32,48,.42)';
       ctx.beginPath();
       ctx.moveTo(sx + w / 2, t.y);
       ctx.lineTo(sx + w - 1, t.y + t.h - 4);
       ctx.lineTo(sx + w / 2, t.y + t.h - 4);
       ctx.closePath();
-      ctx.fillStyle = '#8194ab';
       ctx.fill();
     }
   }
 
+
   function drawSpringTrap(t) {
     var mount = t.mount || 'top';
-
     if (mount === 'left' || mount === 'right') {
-      ctx.fillStyle = 'rgba(18,24,33,.95)';
+      var sg = ctx.createLinearGradient(t.x, t.y, t.x + t.w, t.y);
+      sg.addColorStop(0, 'rgba(16,30,44,.95)');
+      sg.addColorStop(1, 'rgba(8,16,26,.95)');
+      ctx.fillStyle = sg;
       roundRect(t.x, t.y, t.w, t.h, 4);
       ctx.fill();
 
-      ctx.strokeStyle = '#4fd1ff';
+      ctx.strokeStyle = '#5fd8ff';
       ctx.lineWidth = 2;
       var fx = mount === 'left' ? t.x + 5 : t.x + t.w - 5;
       ctx.beginPath();
@@ -5472,47 +5571,68 @@
       }
       ctx.stroke();
 
-      ctx.fillStyle = '#4fd1ff';
-      if (mount === 'left') ctx.fillRect(t.x, t.y + 3, 5, t.h - 6);
-      else ctx.fillRect(t.x + t.w - 5, t.y + 3, 5, t.h - 6);
+      ctx.fillStyle = 'rgba(140,240,255,.85)';
+      if (mount === 'left') ctx.fillRect(t.x, t.y + 3, 4, t.h - 6);
+      else ctx.fillRect(t.x + t.w - 4, t.y + 3, 4, t.h - 6);
       return;
     }
 
-    ctx.fillStyle = 'rgba(18,24,33,.95)';
-    roundRect(t.x, t.y + 9, t.w, t.h - 9, 4);
+    ctx.fillStyle = 'rgba(10,18,28,.95)';
+    roundRect(t.x, t.y + 10, t.w, t.h - 10, 4);
     ctx.fill();
 
-    ctx.strokeStyle = '#4fd1ff';
+    ctx.strokeStyle = '#5fd8ff';
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (var j = 0; j < 3; j++) {
-      var y2 = t.y + 11 + j * 5;
+      var y2 = t.y + 12 + j * 5;
       ctx.moveTo(t.x + 5, y2);
       ctx.lineTo(t.x + t.w - 5, y2 + 2);
     }
     ctx.stroke();
 
-    ctx.fillStyle = '#4fd1ff';
-    roundRect(t.x + 4, t.y, t.w - 8, 8, 3);
+    var cap = ctx.createLinearGradient(0, t.y, 0, t.y + 9);
+    cap.addColorStop(0, '#a8ecff');
+    cap.addColorStop(1, '#3ba6cf');
+    ctx.fillStyle = cap;
+    roundRect(t.x + 4, t.y, t.w - 8, 9, 4);
     ctx.fill();
-
   }
 
   function drawPlatforms() {
     for (var i = 0; i < platforms.length; i++) {
       var p = platforms[i];
-      ctx.fillStyle = '#2a4a6b';
-      roundRect(p.x + 1, p.y, p.w - 2, p.h, 4);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.5)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = '#20405e';
+      roundRect(p.x + 1, p.y, p.w - 2, p.h, 5);
+      ctx.fill();
+      ctx.restore();
+
+      var g = ctx.createLinearGradient(0, p.y, 0, p.y + p.h);
+      g.addColorStop(0, 'rgba(150,215,255,.85)');
+      g.addColorStop(0.35, 'rgba(58,120,170,.95)');
+      g.addColorStop(1, 'rgba(24,52,78,.95)');
+      ctx.fillStyle = g;
+      roundRect(p.x + 1, p.y, p.w - 2, p.h, 5);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(140,210,255,.55)';
-      ctx.fillRect(p.x + 2, p.y, p.w - 4, 3);
+      ctx.fillStyle = 'rgba(200,240,255,.55)';
+      ctx.fillRect(p.x + 3, p.y + 1, p.w - 6, 2);
 
-      ctx.fillStyle = 'rgba(200,230,255,.25)';
-      for (var b = 0; b < p.w; b += 24) {
-        ctx.fillRect(p.x + b + 10, p.y + 8, 4, 4);
-      }
+      ctx.fillStyle = 'rgba(10,20,32,.35)';
+      for (var b = 0; b < p.w; b += 24) ctx.fillRect(p.x + b + 12, p.y + p.h - 5, 4, 2);
     }
+  }
+
+  function drawVignette() {
+    var v = ctx.createRadialGradient(MAP / 2, MAP / 2, MAP * 0.32, MAP / 2, MAP / 2, MAP * 0.78);
+    v.addColorStop(0, "rgba(0,0,0,0)");
+    v.addColorStop(1, "rgba(0,0,0,.55)");
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, MAP, MAP);
   }
 
   function drawMarkers() {
@@ -6226,6 +6346,7 @@
       }
     }
     drawTrapTips();
+    drawVignette();
     if (editorMode) {
       drawEditor();
       drawEditorOverlay();
