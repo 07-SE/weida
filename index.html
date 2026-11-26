@@ -5982,6 +5982,28 @@
       ctx.fillStyle = 'rgba(200,240,180,.30)';
       ctx.fillRect(r.x + 3, r.y + 2, r.w - 6, 3);
 
+      // 顶面有空间的方块：盖一层草皮 + 草叶（让草地主题在关卡里也成立）
+      var aboveT = tileAt(b.col, b.row - 1);
+      var aboveB = blockInCell(b.col, b.row - 1);
+      if (!aboveT && !aboveB) {
+        var capG = ctx.createLinearGradient(0, r.y - 1, 0, r.y + 6);
+        capG.addColorStop(0, '#7ee08f');
+        capG.addColorStop(1, '#3f9a5c');
+        ctx.fillStyle = capG;
+        ctx.fillRect(r.x + 1, r.y - 1, r.w - 2, 6);
+        var sd = (b.col * 13 + b.row * 7) % 5;
+        for (var bg = 0; bg < 4; bg++) {
+          var bx0 = r.x + 8 + bg * (r.w - 16) / 3;
+          var bh = 4 + ((sd + bg * 3) % 4) * 2;
+          ctx.strokeStyle = bg % 2 ? 'rgba(150,245,175,.9)' : 'rgba(110,220,140,.8)';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(bx0, r.y + 3);
+          ctx.quadraticCurveTo(bx0 - 1.5, r.y - bh * 0.4, bx0 + (bg % 2 ? 2 : -2), r.y - 1 - bh);
+          ctx.stroke();
+        }
+      }
+
       ctx.fillStyle = 'rgba(210,230,180,.10)';
       ctx.fillRect(r.x + 2, r.y + 5, 2, r.h - 9);
       ctx.fillStyle = 'rgba(0,0,0,.35)';
