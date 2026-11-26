@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>WEIDA DEMO · Step 2-4 物理与编辑器</title>
+<title>你过来呀 · 双人协作 UGC 平台跳跃</title>
 <link rel="icon" href="data:,">
 <style>
   :root{
@@ -469,7 +469,11 @@
     position:fixed; inset:0; z-index:80;
     display:flex; align-items:center; justify-content:center;
     padding:0 clamp(24px, 8vw, 120px);
-    background:var(--ink-900, #0a1220);
+    background:
+      radial-gradient(120% 70% at 50% 118%, rgba(87,211,140,.22), transparent 62%),
+      radial-gradient(90% 55% at 12% 0%, rgba(87,211,140,.16), transparent 62%),
+      radial-gradient(70% 45% at 92% 4%, rgba(255,209,102,.10), transparent 60%),
+      #071009;
     overflow:hidden;
     text-align:center;
     perspective:900px;
@@ -480,13 +484,28 @@
     transform:translate3d(calc(var(--dx,0) * -18px), calc(var(--dy,0) * -12px), 0) scale(1.05);
     transition:transform .18s ease-out;
     background:
-      radial-gradient(52% 64% at 16% 10%, rgba(91,108,255,.58), transparent 64%),
-      radial-gradient(40% 56% at 58% 0%, rgba(249,107,238,.30), transparent 62%),
-      radial-gradient(36% 50% at 90% 24%, rgba(34,211,238,.22), transparent 64%);
+      radial-gradient(52% 64% at 16% 10%, rgba(87,211,140,.34), transparent 64%),
+      radial-gradient(40% 56% at 58% 0%, rgba(255,209,102,.16), transparent 62%),
+      radial-gradient(36% 50% at 90% 24%, rgba(120,230,160,.20), transparent 64%);
     filter:blur(52px);
     animation:meshIn 900ms cubic-bezier(.16,1,.3,1) both;
   }
   @keyframes meshIn{ from{ opacity:0; transform:translateY(-12px) } to{ opacity:1; transform:none } }
+  .home-grass{
+    position:absolute; left:0; right:0; bottom:0; height:26vh; pointer-events:none;
+    background:
+      radial-gradient(60% 100% at 18% 100%, rgba(87,211,140,.28), transparent 70%),
+      radial-gradient(70% 100% at 82% 100%, rgba(87,211,140,.20), transparent 72%),
+      linear-gradient(180deg, transparent, rgba(6,20,12,.9));
+  }
+  .home-grass::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:34%;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='170' height='90' viewBox='0 0 170 90'%3E%3Cg fill='none' stroke='%2357d38c' stroke-opacity='.38' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M0 90 Q-2 56.4 -3.6 34'/%3E%3Cpath d='M6 90 Q2 68.4 -1.2000000000000002 54'/%3E%3Cpath d='M11 90 Q7 48 3.8 20'/%3E%3Cpath d='M16 90 Q21 48.6 25 21'/%3E%3Cpath d='M24 90 Q20 72 16.8 60'/%3E%3Cpath d='M29 90 Q25 63.6 21.8 46'/%3E%3Cpath d='M37 90 Q42 72.6 46 61'/%3E%3Cpath d='M42 90 Q38 54 34.8 30'/%3E%3Cpath d='M51 90 Q49 69.6 47.4 56'/%3E%3Cpath d='M59 90 Q57 64.8 55.4 48'/%3E%3Cpath d='M65 90 Q68 61.8 70.4 43'/%3E%3Cpath d='M71 90 Q69 67.2 67.4 52'/%3E%3Cpath d='M78 90 Q83 61.8 87 43'/%3E%3Cpath d='M85 90 Q88 63 90.4 45'/%3E%3Cpath d='M90 90 Q88 49.2 86.4 22'/%3E%3Cpath d='M98 90 Q94 62.400000000000006 90.8 44'/%3E%3Cpath d='M104 90 Q102 57.6 100.4 36'/%3E%3Cpath d='M112 90 Q115 55.800000000000004 117.4 33'/%3E%3Cpath d='M119 90 Q124 73.8 128 63'/%3E%3Cpath d='M126 90 Q124 72 122.4 60'/%3E%3Cpath d='M135 90 Q131 64.8 127.8 48'/%3E%3Cpath d='M142 90 Q138 57.6 134.8 36'/%3E%3Cpath d='M151 90 Q154 54.6 156.4 31'/%3E%3Cpath d='M159 90 Q157 61.2 155.4 42'/%3E%3Cpath d='M167 90 Q170 71.4 172.4 59'/%3E%3C/g%3E%3Cg fill='none' stroke='%2389e8a7' stroke-opacity='.22' stroke-width='1.6' stroke-linecap='round' transform='translate(3 6)'%3E%3Cpath d='M0 90 Q-2 56.4 -3.6 34'/%3E%3Cpath d='M6 90 Q2 68.4 -1.2000000000000002 54'/%3E%3Cpath d='M11 90 Q7 48 3.8 20'/%3E%3Cpath d='M16 90 Q21 48.6 25 21'/%3E%3Cpath d='M24 90 Q20 72 16.8 60'/%3E%3Cpath d='M29 90 Q25 63.6 21.8 46'/%3E%3Cpath d='M37 90 Q42 72.6 46 61'/%3E%3Cpath d='M42 90 Q38 54 34.8 30'/%3E%3Cpath d='M51 90 Q49 69.6 47.4 56'/%3E%3Cpath d='M59 90 Q57 64.8 55.4 48'/%3E%3Cpath d='M65 90 Q68 61.8 70.4 43'/%3E%3Cpath d='M71 90 Q69 67.2 67.4 52'/%3E%3Cpath d='M78 90 Q83 61.8 87 43'/%3E%3Cpath d='M85 90 Q88 63 90.4 45'/%3E%3Cpath d='M90 90 Q88 49.2 86.4 22'/%3E%3Cpath d='M98 90 Q94 62.400000000000006 90.8 44'/%3E%3Cpath d='M104 90 Q102 57.6 100.4 36'/%3E%3Cpath d='M112 90 Q115 55.800000000000004 117.4 33'/%3E%3Cpath d='M119 90 Q124 73.8 128 63'/%3E%3Cpath d='M126 90 Q124 72 122.4 60'/%3E%3Cpath d='M135 90 Q131 64.8 127.8 48'/%3E%3Cpath d='M142 90 Q138 57.6 134.8 36'/%3E%3Cpath d='M151 90 Q154 54.6 156.4 31'/%3E%3Cpath d='M159 90 Q157 61.2 155.4 42'/%3E%3Cpath d='M167 90 Q170 71.4 172.4 59'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat:repeat-x;
+    background-position:bottom left;
+    background-size:auto 100%;
+    opacity:.95;
+  }
   .home-inner{
     position:relative; z-index:1;
     display:flex; flex-direction:column; align-items:center;
@@ -497,10 +516,14 @@
   }
   @keyframes homeIn{ from{ opacity:0; transform:translateY(14px) } to{ opacity:1; transform:none } }
   .home-title{
-    margin:0; color:#f4f8ff;
-    font-size:clamp(40px, 6.2vw, 66px); font-weight:700;
-    line-height:1.06; letter-spacing:-.035em;
-    text-wrap:balance;
+    margin:0; color:#f2fff6;
+    font-size:clamp(58px, 9vw, 108px); font-weight:800;
+    line-height:1.02; letter-spacing:.06em;
+    text-shadow:0 6px 30px rgba(0,0,0,.6), 0 0 40px rgba(87,211,140,.18);
+  }
+  .home-tagline{
+    margin:0; font-size:clamp(13px, 1.4vw, 16px); font-weight:600;
+    color:#9fe0b4; letter-spacing:.06em;
   }
   .home-sub{
     margin:0; font-size:14px; line-height:1.65;
@@ -528,10 +551,10 @@
   .home-btns button b{ font-size:16px; font-weight:700; letter-spacing:-.01em; }
   .home-btns button span{ font-size:11.5px; font-weight:400; opacity:.78; }
   .home-btns .btn-primary{
-    background:var(--primary, #5b6cff); color:#fff;
-    box-shadow:0 10px 26px -14px rgba(91,108,255,.9);
+    background:linear-gradient(180deg,#8ff0b3,#3fb474); color:#06210f;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.55), 0 12px 28px -14px rgba(87,211,140,.95);
   }
-  .home-btns .btn-primary:hover{ background:var(--primary-deep, #3f4ede); transform:translateY(-1px); }
+  .home-btns .btn-primary:hover{ filter:brightness(1.06); transform:translateY(-1px); }
   .home-btns .btn-secondary{
     background:transparent; color:var(--text-mid, #a9bccf);
     box-shadow:inset 0 0 0 1px rgba(140,180,225,.28);
@@ -927,7 +950,7 @@
 
   <aside class="hud" id="hud" style="display: flex;">
     <button type="button" class="tut-btn" id="tut-btn" title="教程">教程</button>
-    <div class="brand"><span class="dot"></span><h1>WEIDA DEMO</h1></div>
+    <div class="brand"><span class="dot"></span><h1>你过来呀</h1></div>
     <p class="sub">双人协作 · 踩头借力 · 连坐掉血</p>
 
     <div class="level-hud" id="level-hud" hidden>
@@ -1120,8 +1143,10 @@
 
 <div class="home" id="home">
   <div class="home-mesh" aria-hidden="true"></div>
+  <div class="home-grass" aria-hidden="true"></div>
   <div class="home-inner">
-    <h1 class="home-title">做一张坑图，<br>发给朋友看他破防</h1>
+    <h1 class="home-title">你过来呀</h1>
+    <p class="home-tagline">做一张坑图，发给朋友，看他破防</p>
     <p class="home-sub">双人同屏 · 一个键盘 · 不用注册 —— 一条链接就能玩到你朋友做的关卡</p>
     <div class="home-btns">
       <button type="button" class="btn-primary" id="home-edit"><b>编辑</b><span>30 秒做一张，生成分享链接</span></button>
@@ -5850,20 +5875,20 @@
 
   function drawGrid() {
     var g = ctx.createLinearGradient(0, 0, 0, MAP);
-    g.addColorStop(0, '#0c1526');
-    g.addColorStop(0.55, '#0a1220');
-    g.addColorStop(1, '#080e19');
+    g.addColorStop(0, '#0d2018');
+    g.addColorStop(0.55, '#091711');
+    g.addColorStop(1, '#061009');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, MAP, MAP);
 
     var glow = ctx.createRadialGradient(MAP * 0.5, -MAP * 0.15, 0, MAP * 0.5, -MAP * 0.15, MAP * 0.9);
-    glow.addColorStop(0, 'rgba(91,108,255,.16)');
+    glow.addColorStop(0, 'rgba(120,220,150,.16)');
     glow.addColorStop(1, 'rgba(91,108,255,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, MAP, MAP);
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(130,170,220,.075)';
+    ctx.strokeStyle = 'rgba(140,220,170,.085)';
     ctx.beginPath();
     for (var i = 0; i <= COLS; i++) {
       var p = i * CELL + 0.5;
@@ -5883,19 +5908,32 @@
         var openBottom = !solidAt(c, r + 1);
 
         var body = ctx.createLinearGradient(x, y, x, y + CELL);
-        body.addColorStop(0, '#1b2c40');
-        body.addColorStop(1, '#111d2c');
+        body.addColorStop(0, '#22402d');
+        body.addColorStop(1, '#152a1d');
         ctx.fillStyle = body;
         ctx.fillRect(x, y, CELL, CELL);
 
         if (openTop) {
           var top = ctx.createLinearGradient(x, y, x, y + 10);
-          top.addColorStop(0, 'rgba(120,200,255,.42)');
-          top.addColorStop(1, 'rgba(120,200,255,0)');
+          top.addColorStop(0, 'rgba(150,240,170,.5)');
+          top.addColorStop(1, 'rgba(150,240,170,0)');
           ctx.fillStyle = top;
           ctx.fillRect(x, y, CELL, 10);
-          ctx.fillStyle = '#3a6188';
+          ctx.fillStyle = '#57b46c';
           ctx.fillRect(x, y, CELL, 2);
+
+          // 草叶：由格子坐标决定，稳定不闪
+          var seed = (c * 37 + r * 17) % 7;
+          for (var gi = 0; gi < 4; gi++) {
+            var gx0 = x + 8 + gi * 15 + (seed % 3) * 2;
+            var gh = 5 + ((seed + gi * 3) % 4) * 2;
+            ctx.strokeStyle = gi % 2 ? 'rgba(120,226,150,.85)' : 'rgba(90,200,124,.75)';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(gx0, y + 3);
+            ctx.quadraticCurveTo(gx0 - 2, y - gh * 0.5, gx0 + (gi % 2 ? 2 : -2), y - gh);
+            ctx.stroke();
+          }
         }
 
         if (openBottom) {
@@ -5928,28 +5966,28 @@
       ctx.shadowColor = 'rgba(0,0,0,.55)';
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 5;
-      ctx.fillStyle = '#16283b';
+      ctx.fillStyle = '#1a1206';
       roundRect(r.x, r.y, r.w, r.h, 4);
       ctx.fill();
       ctx.restore();
 
       var g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
-      g.addColorStop(0, '#22405a');
-      g.addColorStop(0.5, '#1a3247');
-      g.addColorStop(1, '#122334');
+      g.addColorStop(0, '#4b3a24');
+      g.addColorStop(0.5, '#3a2c1a');
+      g.addColorStop(1, '#291f11');
       ctx.fillStyle = g;
       roundRect(r.x, r.y, r.w, r.h, 4);
       ctx.fill();
 
-      ctx.fillStyle = 'rgba(140,215,255,.35)';
+      ctx.fillStyle = 'rgba(200,240,180,.30)';
       ctx.fillRect(r.x + 3, r.y + 2, r.w - 6, 3);
 
-      ctx.fillStyle = 'rgba(160,220,255,.10)';
+      ctx.fillStyle = 'rgba(210,230,180,.10)';
       ctx.fillRect(r.x + 2, r.y + 5, 2, r.h - 9);
       ctx.fillStyle = 'rgba(0,0,0,.35)';
       ctx.fillRect(r.x + r.w - 3, r.y + 5, 2, r.h - 9);
 
-      ctx.strokeStyle = 'rgba(120,200,255,.38)';
+      ctx.strokeStyle = 'rgba(160,210,140,.34)';
       ctx.lineWidth = 1;
       roundRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1, 4);
       ctx.stroke();
