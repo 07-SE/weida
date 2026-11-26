@@ -548,7 +548,11 @@
   setTimeout(function () {
     document.querySelectorAll('.hero-inner > *, .scroll-hint').forEach(function (el) {
       var op = parseFloat(getComputedStyle(el).opacity);
-      if (!(op > 0.6)) { el.style.opacity = '1'; el.style.transform = 'none'; }
+      if (!(op > 0.98)) {
+        el.style.animation = 'none';
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      }
     });
   }, 1600);
 
