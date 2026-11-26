@@ -544,6 +544,14 @@
     });
   });
 
+  /* ---------- 保险：动画被系统禁用/卡住时也保证首屏可见 ---------- */
+  setTimeout(function () {
+    document.querySelectorAll('.hero-inner > *, .scroll-hint').forEach(function (el) {
+      var op = parseFloat(getComputedStyle(el).opacity);
+      if (!(op > 0.6)) { el.style.opacity = '1'; el.style.transform = 'none'; }
+    });
+  }, 1600);
+
   /* ---------- 首屏草叶飘动 ---------- */
   var cv = document.getElementById('grass-canvas');
   if (cv && !reduce) {
